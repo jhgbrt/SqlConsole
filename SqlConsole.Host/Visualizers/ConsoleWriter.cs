@@ -1,6 +1,6 @@
 using System;
 
-namespace SqlConsole.Host.Visualizers
+namespace SqlConsole.Host
 {
     class ConsoleWriter<T> : IResultProcessor<T>
     {

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
-using SqlConsole.Host.Infrastructure;
 
 namespace SqlConsole.Host
 {
@@ -52,7 +51,7 @@ namespace SqlConsole.Host
 
             maxLengths.Sort(comparer);
 
-            while (maxLengths.Sum(x => x.MaxLength) + (dt.Columns.Count - 1) * separatorSize > totalWidth - 1)
+            while (maxLengths[0].MaxLength >= 10 && maxLengths.Sum(x => x.MaxLength) + (dt.Columns.Count - 1) * separatorSize > totalWidth - 1)
             {
                 maxLengths[0].MaxLength--;
                 maxLengths.Sort(comparer);
@@ -70,6 +69,11 @@ namespace SqlConsole.Host
                 result = result.Substring(0, result.Length - 3) + "...";
             }
             return result;
+        }
+
+        public static string SafeSubstring(this string s, int startIndex, int length)
+        {
+            return s.Substring(startIndex, Math.Min(length, s.Length));
         }
     }
 }

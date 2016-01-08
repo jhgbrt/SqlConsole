@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 
-namespace SqlConsole.Host.Infrastructure
+namespace SqlConsole.Host
 {
     class LambdaComparer<T> : IComparer<T>
     {
-        private Func<T, int> _f;
+        private readonly Func<T, int> _f;
 
         public LambdaComparer(Func<T, int> f)
         {

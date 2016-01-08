@@ -3,11 +3,11 @@ using System.Data;
 using System.IO;
 using System.Linq;
 
-namespace SqlConsole.Host.Visualizers
+namespace SqlConsole.Host
 {
     class CsvWriter : IResultProcessor<DataTable>
     {
-        private string _outputFile;
+        private readonly string _outputFile;
 
         public CsvWriter(string outputFile)
         {

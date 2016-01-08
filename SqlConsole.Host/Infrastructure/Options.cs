@@ -144,7 +144,7 @@ using NDesk.Options;
 #if NDESK_OPTIONS
 namespace NDesk.Options
 #else
-namespace SqlConsole.Host.Infrastructure
+namespace SqlConsole.Host
 #endif
 {
     public class OptionValueCollection : IList, IList<string>

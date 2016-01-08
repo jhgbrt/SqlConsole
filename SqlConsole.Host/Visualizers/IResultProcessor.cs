@@ -1,6 +1,6 @@
-namespace SqlConsole.Host.Visualizers
+namespace SqlConsole.Host
 {
-    interface IResultProcessor<TResult>
+    interface IResultProcessor<in TResult>
     {
         void Process(TResult result);
     }

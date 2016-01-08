@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using SqlConsole.Host.Infrastructure;
 
 namespace SqlConsole.Host
 {
@@ -22,7 +21,7 @@ namespace SqlConsole.Host
 
         public bool Help { get; private set; }
 
-        public Config Parse(string[] args)
+        private Config Parse(string[] args)
         {
             var remaining = _optionSet.Parse(args);
             if (remaining.Any())

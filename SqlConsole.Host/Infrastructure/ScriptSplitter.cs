@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Security.Permissions;
 
-namespace SqlConsole.Host.Infrastructure
+namespace SqlConsole.Host
 {
     [Serializable]
     public class SqlParseException : Exception

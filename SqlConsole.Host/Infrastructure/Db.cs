@@ -18,7 +18,7 @@ using Microsoft.CSharp.RuntimeBinder;
 // from there it should be discoverable.
 // inline SQL FTW!
 
-namespace SqlConsole.Host.Infrastructure
+namespace SqlConsole.Host
 {
  
    public interface IConnectionFactory

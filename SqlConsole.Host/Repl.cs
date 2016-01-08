@@ -23,13 +23,13 @@ namespace SqlConsole.Host
                     case "exit":
                         return;
                     case "select":
-                        QueryHandlerFactory.DataTable.Execute(query);
+                        QueryHandlerFactory.DataTable().Execute(query);
                         break;
                     case "update":
                     case "delete":
                     case "insert":
                     case "create":
-                        QueryHandlerFactory.NonQuery.Execute(query);
+                        QueryHandlerFactory.NonQuery().Execute(query);
                         break;
                 }
             }

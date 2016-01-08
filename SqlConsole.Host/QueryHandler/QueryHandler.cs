@@ -1,9 +1,5 @@
 using System;
-using System.Configuration;
-using System.Data;
 using System.Data.Common;
-using SqlConsole.Host.Infrastructure;
-using SqlConsole.Host.Visualizers;
 
 namespace SqlConsole.Host
 {

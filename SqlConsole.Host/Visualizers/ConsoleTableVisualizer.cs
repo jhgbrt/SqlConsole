@@ -3,7 +3,7 @@ using System.Configuration;
 using System.Data;
 using System.Linq;
 
-namespace SqlConsole.Host.Visualizers
+namespace SqlConsole.Host
 {
     class ConsoleTableVisualizer : IResultProcessor<DataTable>
     {
@@ -22,19 +22,25 @@ namespace SqlConsole.Host.Visualizers
 
         public void Process(DataTable result)
         {
-            var columnLengths = result.ColumnLengths(_windowWidth, _separator.Length);
+            var maxLength = _windowWidth - 1;
+            var columnLengths = result.ColumnLengths(maxLength, _separator.Length);
             var columnNames = result.Columns.OfType<DataColumn>().Select(c => c.ColumnName.OfLength(columnLengths[c])).ToList();
-            Console.WriteLine(string.Join(_separator, columnNames));
-            Console.WriteLine(string.Join("-|-", columnNames.Select(c => new string(Enumerable.Repeat('-', c.Length).ToArray()))));
+            var joinedColumnNames = string.Join(_separator, columnNames);
+            var line = string.Join("-|-", columnNames.Select(c => new string(Enumerable.Repeat('-', c.Length).ToArray())));
+
+            Console.WriteLine(joinedColumnNames.SafeSubstring(0, maxLength));
+            Console.WriteLine(line.SafeSubstring(0, maxLength));
+
             foreach (var item in result.Rows.OfType<DataRow>())
             {
                 var row = item;
                 var values = result.Columns.OfType<DataColumn>().Select(c => row[c].ToString().OfLength(columnLengths[c]));
-                Console.WriteLine(string.Join(_separator, values));
+                var rowStr = string.Join(_separator, values);
+                Console.WriteLine(rowStr.SafeSubstring(0, maxLength));
             }
         }
 
-        static T? Try<T>(params Func<T>[] functions) where T : struct
+        private static T? Try<T>(params Func<T>[] functions) where T : struct
         {
             foreach (var f in functions)
             {
@@ -44,6 +50,7 @@ namespace SqlConsole.Host.Visualizers
                 }
                 catch
                 {
+                    // ReSharper disable once RedundantJumpStatement
                     continue;
                 }
             }
