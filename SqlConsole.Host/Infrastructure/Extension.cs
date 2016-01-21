@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
+using Subtext.Scripting;
 
 namespace SqlConsole.Host
 {
@@ -96,5 +97,11 @@ namespace SqlConsole.Host
         {
             return s.Substring(startIndex, Math.Min(length, s.Length));
         }
+
+        public static IEnumerable<string> SplitOnGo(this string s)
+        {
+            var splitter = new ScriptSplitter(s);
+            return splitter;
+        } 
     }
 }

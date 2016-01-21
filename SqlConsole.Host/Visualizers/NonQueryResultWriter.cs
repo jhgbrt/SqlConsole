@@ -10,7 +10,7 @@ namespace SqlConsole.Host
             var r = (int)(object)result;
             if (r < 0) return;
             var s = r == 1 ? "" : "s";
-            Console.WriteLine("{0} row{1} affected", result, s);
+            Console.WriteLine($"{result} row{s} affected");
         }
     }
 

@@ -13,38 +13,19 @@ namespace SqlConsole.Host
         }
 
         #region Equality
-        public bool Equals(ConnectionStringParam other)
-        {
-            return string.Equals(Name, other.Name);
-        }
+        public bool Equals(ConnectionStringParam other) => string.Equals(Name, other.Name);
 
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj)) return false;
-            return obj is ConnectionStringParam && Equals((ConnectionStringParam) obj);
-        }
+        public override bool Equals(object obj) => !ReferenceEquals(null, obj) && (obj is ConnectionStringParam && Equals((ConnectionStringParam) obj));
 
-        public override int GetHashCode()
-        {
-            return (Name != null ? Name.GetHashCode() : 0);
-        }
+        public override int GetHashCode() => Name?.GetHashCode() ?? 0;
 
-        public static bool operator ==(ConnectionStringParam left, ConnectionStringParam right)
-        {
-            return left.Equals(right);
-        }
+        public static bool operator ==(ConnectionStringParam left, ConnectionStringParam right) => left.Equals(right);
 
-        public static bool operator !=(ConnectionStringParam left, ConnectionStringParam right)
-        {
-            return !(left == right);
-        }
+        public static bool operator !=(ConnectionStringParam left, ConnectionStringParam right) => !(left == right);
+
         #endregion
 
-
-        public override string ToString()
-        {
-            return Name;
-        }
+        public override string ToString() => Name;
 
         public static readonly ConnectionStringParam DataSource = new ConnectionStringParam("Data Source");
         public static readonly ConnectionStringParam Server = new ConnectionStringParam("Server");

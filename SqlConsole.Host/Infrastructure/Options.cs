@@ -1,4 +1,5 @@
-﻿//
+﻿// ReSharper disable All
+//
 // Options.cs
 //
 // Authors:

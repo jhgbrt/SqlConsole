@@ -12,9 +12,6 @@ namespace SqlConsole.Host
             _f = f;
         }
 
-        public int Compare(T x, T y)
-        {
-            return _f(x).CompareTo(_f(y));
-        }
+        public int Compare(T x, T y) => _f(x).CompareTo(_f(y));
     }
 }

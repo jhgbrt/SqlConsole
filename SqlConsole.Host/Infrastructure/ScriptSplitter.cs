@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Security.Permissions;
+using static System.Char;
 
 namespace Subtext.Scripting
 {
@@ -50,20 +51,11 @@ namespace Subtext.Scripting
             _scriptReader = new SeparatorLineReader(this);
         }
 
-        internal bool HasNext
-        {
-            get { return _reader.Peek() != -1; }
-        }
+        internal bool HasNext => _reader.Peek() != -1;
 
-        internal char Current
-        {
-            get { return _current; }
-        }
+        internal char Current => _current;
 
-        internal char LastChar
-        {
-            get { return _lastChar; }
-        }
+        internal char LastChar => _lastChar;
 
         #region IEnumerable<string> Members
 
@@ -71,30 +63,23 @@ namespace Subtext.Scripting
         {
             while (Next())
             {
-                if (Split())
+                if (!Split()) continue;
+                var script = _builder.ToString().Trim();
+                if (script.Length > 0)
                 {
-                    string script = _builder.ToString().Trim();
-                    if (script.Length > 0)
-                    {
-                        yield return (script);
-                    }
-                    Reset();
+                    yield return (script);
                 }
+                Reset();
             }
-            if (_builder.Length > 0)
+            if (_builder.Length <= 0) yield break;
+            var scriptRemains = _builder.ToString().Trim();
+            if (scriptRemains.Length > 0)
             {
-                string scriptRemains = _builder.ToString().Trim();
-                if (scriptRemains.Length > 0)
-                {
-                    yield return (scriptRemains);
-                }
+                yield return (scriptRemains);
             }
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         #endregion
 
@@ -110,34 +95,19 @@ namespace Subtext.Scripting
             return true;
         }
 
-        internal int Peek()
-        {
-            return _reader.Peek();
-        }
+        internal int Peek() => _reader.Peek();
 
-        private bool Split()
-        {
-            return _scriptReader.ReadNextSection();
-        }
+        private bool Split() => _scriptReader.ReadNextSection();
 
-        internal void SetParser(ScriptReader newReader)
-        {
-            _scriptReader = newReader;
-        }
+        internal void SetParser(ScriptReader newReader) => _scriptReader = newReader;
 
-        internal void Append(string text)
-        {
-            _builder.Append(text);
-        }
+        internal void Append(string text) => _builder.Append(text);
 
-        internal void Append(char c)
-        {
-            _builder.Append(c);
-        }
+        internal void Append(char c) => _builder.Append(c);
 
         void Reset()
         {
-            _current = _lastChar = char.MinValue;
+            _current = _lastChar = MinValue;
             _builder = new System.Text.StringBuilder();
         }
     }
@@ -200,11 +170,8 @@ namespace Subtext.Scripting
 
         protected virtual void ReadSlashStarComment()
         {
-            if (ReadSlashStarCommentWithResult())
-            {
-                Splitter.SetParser(new SeparatorLineReader(Splitter));
-                return;
-            }
+            if (!ReadSlashStarCommentWithResult()) return;
+            Splitter.SetParser(new SeparatorLineReader(Splitter));
         }
 
 
@@ -246,73 +213,29 @@ namespace Subtext.Scripting
 
         #region Helper methods and properties
 
-        protected bool HasNext
-        {
-            get { return Splitter.HasNext; }
-        }
+        protected bool HasNext => Splitter.HasNext;
 
-        protected bool WhiteSpace
-        {
-            get { return char.IsWhiteSpace(Splitter.Current); }
-        }
+        protected bool WhiteSpace => IsWhiteSpace(Splitter.Current);
 
-        protected bool EndOfLine
-        {
-            get { return '\n' == Splitter.Current; }
-        }
+        protected bool EndOfLine => '\n' == Splitter.Current;
 
-        protected bool IsQuote
-        {
-            get { return '\'' == Splitter.Current; }
-        }
+        protected bool IsQuote => '\'' == Splitter.Current;
 
-        protected char Current
-        {
-            get { return Splitter.Current; }
-        }
+        protected char Current => Splitter.Current;
 
-        protected char LastChar
-        {
-            get { return Splitter.LastChar; }
-        }
+        protected char LastChar => Splitter.LastChar;
 
-        bool BeginDashDashComment
-        {
-            get { return Current == '-' && Peek() == '-'; }
-        }
+        bool BeginDashDashComment => Current == '-' && Peek() == '-';
 
-        bool BeginSlashStarComment
-        {
-            get { return Current == '/' && Peek() == '*'; }
-        }
+        bool BeginSlashStarComment => Current == '/' && Peek() == '*';
 
+        bool EndSlashStarComment => LastChar == '*' && Current == '/';
 
-        bool EndSlashStarComment
-        {
-            get { return LastChar == '*' && Current == '/'; }
-        }
+        protected static bool CharEquals(char expected, char actual) => ToLowerInvariant(expected) == ToLowerInvariant(actual);
 
+        protected bool CharEquals(char compare) => CharEquals(Current, compare);
 
-        protected static bool CharEquals(char expected, char actual)
-        {
-            return Char.ToLowerInvariant(expected) == Char.ToLowerInvariant(actual);
-        }
-
-
-        protected bool CharEquals(char compare)
-        {
-            return CharEquals(Current, compare);
-        }
-
-
-        protected char Peek()
-        {
-            if (!HasNext)
-            {
-                return char.MinValue;
-            }
-            return (char)Splitter.Peek();
-        }
+        private char Peek() => !HasNext ? MinValue : (char)Splitter.Peek();
 
         #endregion
     }
@@ -330,14 +253,12 @@ namespace Subtext.Scripting
         {
         }
 
-
         void Reset()
         {
             _foundGo = false;
             _gFound = false;
             _builder = new System.Text.StringBuilder();
         }
-
 
         protected override bool ReadDashDashComment()
         {
@@ -350,7 +271,6 @@ namespace Subtext.Scripting
             return true;
         }
 
-
         protected override void ReadSlashStarComment()
         {
             if (_foundGo)
@@ -360,11 +280,8 @@ namespace Subtext.Scripting
             base.ReadSlashStarComment();
         }
 
-
         protected override bool ReadNext()
         {
-
-
             if (EndOfLine) //End of line or script
             {
                 if (!_foundGo)
@@ -404,7 +321,7 @@ namespace Subtext.Scripting
 
             if (CharEquals('g', Current))
             {
-                if (_gFound || (!Char.IsWhiteSpace(LastChar) && LastChar != char.MinValue))
+                if (_gFound || (!IsWhiteSpace(LastChar) && LastChar != MinValue))
                 {
                     FoundNonEmptyCharacter(Current);
                     return false;
@@ -423,7 +340,6 @@ namespace Subtext.Scripting
             return false;
         }
 
-
         void FoundNonEmptyCharacter(char c)
         {
             _builder.Append(c);
@@ -431,20 +347,14 @@ namespace Subtext.Scripting
             Splitter.SetParser(new SqlScriptReader(Splitter));
         }
 
-
     }
-
-
 
     class SqlScriptReader : ScriptReader
     {
-
-
         public SqlScriptReader(ScriptSplitter splitter)
             : base(splitter)
         {
         }
-
 
         protected override bool ReadNext()
         {
@@ -458,9 +368,5 @@ namespace Subtext.Scripting
             Splitter.Append(Current);
             return false;
         }
-
-
     }
-
-
 }

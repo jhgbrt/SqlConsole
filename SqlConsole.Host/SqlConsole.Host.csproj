@@ -52,12 +52,12 @@
     <Compile Include="Configuration\CommandLine.cs" />
     <Compile Include="Configuration\CommandLineParam.cs" />
     <Compile Include="Configuration\Config.cs" />
+    <Compile Include="Configuration\ConnectionString.cs" />
     <Compile Include="Configuration\ConnectionStringParam.cs" />
-    <Compile Include="Configuration\ParameterMapper.cs" />
-    <Compile Include="Configuration\ParameterMapping.cs" />
-    <Compile Include="Configuration\ProviderMapping.cs" />
+    <Compile Include="Configuration\ConnectionStringBuilder.cs" />
     <Compile Include="Configuration\Provider.cs" />
     <Compile Include="Configuration\Value.cs" />
+    <Compile Include="Infrastructure\CollectionOf.cs" />
     <Compile Include="Repl.cs" />
     <Compile Include="Visualizers\ConsoleTableVisualizer.cs" />
     <Compile Include="Visualizers\ConsoleWriter.cs" />

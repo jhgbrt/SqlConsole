@@ -40,7 +40,7 @@ namespace SqlConsole.Host
         private static string ReadQuery()
         {
             var sb = new StringBuilder();
-            string readLine = Console.ReadLine();
+            var readLine = Console.ReadLine();
             while (true)
             {
                 if (string.IsNullOrWhiteSpace(readLine))

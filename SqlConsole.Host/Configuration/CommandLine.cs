@@ -4,33 +4,22 @@ using System.Diagnostics;
 
 namespace SqlConsole.Host
 {
-    class CommandLine : IEnumerable<KeyValuePair<CommandLineParam, Value>>
+    class CommandLine : Dictionary<CommandLineParam, Value>
     {
-        readonly IDictionary<CommandLineParam, Value> _values;
-
-        public CommandLine()
-        {
-            _values = new Dictionary<CommandLineParam, Value>();
-        }
-
         public Value? Server
         {
-            get { return TryGet(CommandLineParam.Server); }
-            set { SetValue(CommandLineParam.Server, value); }
+            get { return TryGet(CommandLineParam.server); }
+            set { SetValue(CommandLineParam.server, value); }
         }
 
-        public Value? Port
-        {
-            get { return TryGet(CommandLineParam.Port); }
-        }
-        public Value? User
-        {
-            get { return TryGet(CommandLineParam.User); }
-        }
+        public Value? Port => TryGet(CommandLineParam.port);
+
+        public Value? User => TryGet(CommandLineParam.user);
+
         public Value? IntegratedSecurity
         {
-            get { return TryGet(CommandLineParam.Integratedsecurity); }
-            set { SetValue(CommandLineParam.Integratedsecurity, value); }
+            get { return TryGet(CommandLineParam.integratedsecurity); }
+            set { SetValue(CommandLineParam.integratedsecurity, value); }
         }
 
         private void SetValue(CommandLineParam key, Value? value)
@@ -39,32 +28,13 @@ namespace SqlConsole.Host
             this[key] = value.Value;
         }
 
-        public Value this[CommandLineParam key]
-        {
-            set { _values[key] = value; }
-        }
-
         private Value? TryGet(CommandLineParam commandLineParam)
         {
             Value v;
-            if (_values.TryGetValue(commandLineParam, out v)) return v;
+            if (TryGetValue(commandLineParam, out v)) return v;
             return null;
 
         }
-
-        public IEnumerator<KeyValuePair<CommandLineParam, Value>> GetEnumerator()
-        {
-            return _values.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        public override string ToString()
-        {
-            return string.Join(",", this);
-        }
+        public override string ToString() => string.Join(",", this);
     }
 }

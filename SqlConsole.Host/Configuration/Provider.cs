@@ -11,37 +11,19 @@ namespace SqlConsole.Host
         }
 
         #region Equality
-        public bool Equals(Provider other)
-        {
-            return string.Equals(Name, other.Name);
-        }
+        public bool Equals(Provider other) => string.Equals(Name, other.Name);
 
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj)) return false;
-            return obj is Provider && Equals((Provider)obj);
-        }
+        public override bool Equals(object obj) => !ReferenceEquals(null, obj) && (obj is Provider && Equals((Provider) obj));
 
-        public override int GetHashCode()
-        {
-            return (Name != null ? Name.GetHashCode() : 0);
-        }
+        public override int GetHashCode() => Name?.GetHashCode() ?? 0;
 
-        public static bool operator ==(Provider left, Provider right)
-        {
-            return left.Equals(right);
-        }
+        public static bool operator ==(Provider left, Provider right) => left.Equals(right);
 
-        public static bool operator !=(Provider left, Provider right)
-        {
-            return !(left == right);
-        }
+        public static bool operator !=(Provider left, Provider right) => !(left == right);
+
         #endregion
 
-        public override string ToString()
-        {
-            return Name ?? "Default";
-        }
+        public override string ToString() => Name ?? "Default";
 
         public static readonly Provider Sqlserver = new Provider("System.Data.SqlClient");
         public static readonly Provider SqlCompact = new Provider("System.Data.SqlServerCe.4.0");
