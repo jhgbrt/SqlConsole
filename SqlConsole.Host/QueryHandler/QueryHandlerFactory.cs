@@ -9,38 +9,41 @@ namespace SqlConsole.Host
         {
             if (config.Scalar)
             {
-                return Scalar(ScalarResultProcessor(config));
+                return Scalar(config);
             }
 
             if (config.NonQuery)
             {
-                return NonQuery();
+                return NonQuery(config);
             }
 
-            return DataTable(DataTableProcessor(config));
+            return DataTable(config);
         }
 
-        public static IQueryHandler Scalar(IResultProcessor<object> resultProcessor)
+        public static IQueryHandler Scalar(Config config, IResultProcessor<object> resultProcessor = null)
         {
             return new QueryHandler<object>(
+                config,
                 (db, query) => db.Sql(query).AsScalar(),
-                resultProcessor ?? new ConsoleWriter()
+                resultProcessor ?? ScalarResultProcessor(config)
                 );
         }
 
-        public static IQueryHandler NonQuery()
+        public static IQueryHandler NonQuery(Config config, IResultProcessor<int> resultProcessor = null)
         {
             return new QueryHandler<int>(
+                config,
                 (db, query) => db.Sql(query).AsNonQuery(),
-                new NonQueryResultWriter()
+                resultProcessor ?? new NonQueryResultWriter()
                 );
         }
 
-        public static IQueryHandler DataTable(IResultProcessor<DataTable> resultProcessor = null)
+        public static IQueryHandler DataTable(Config config, IResultProcessor<DataTable> resultProcessor = null)
         {
             return new QueryHandler<DataTable>(
+                config,
                 (db, query) => db.Sql(query).AsDataTable(),
-                resultProcessor ?? new ConsoleTableVisualizer()
+                resultProcessor ?? DataTableProcessor(config)
                 );
         }
 

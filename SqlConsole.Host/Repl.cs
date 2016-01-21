@@ -6,7 +6,13 @@ namespace SqlConsole.Host
 {
     internal class Repl
     {
-        public static void Enter()
+        private readonly Config _config;
+        public Repl(Config config)
+        {
+            _config = config;
+        }
+
+        public void Enter()
         {
             while (true)
             {
@@ -22,16 +28,12 @@ namespace SqlConsole.Host
                     case "quit":
                     case "exit":
                         return;
-                    case "select":
-                        QueryHandlerFactory.DataTable().Execute(query);
-                        break;
-                    case "update":
-                    case "delete":
-                    case "insert":
-                    case "create":
-                        QueryHandlerFactory.NonQuery().Execute(query);
+                    default:
+                        Console.WriteLine();
+                        QueryHandlerFactory.DataTable(_config, new ConsoleTableVisualizer()).Execute(query);
                         break;
                 }
+                Console.WriteLine();
             }
         }
 
@@ -44,13 +46,21 @@ namespace SqlConsole.Host
                 if (string.IsNullOrWhiteSpace(readLine))
                     break;
 
-                sb.AppendLine(readLine);
-
                 if (readLine.EndsWith(";"))
+                {
+                    sb.AppendLine(readLine);
                     break;
+                }
                 if (readLine == "GO")
+                {
                     break;
+                }
+                if (readLine == "/")
+                {
+                    break;
+                }
 
+                sb.AppendLine(readLine);
                 readLine = Console.ReadLine();
             }
             return sb.ToString();

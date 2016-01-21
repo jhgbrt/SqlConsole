@@ -1,16 +1,19 @@
 using System;
 using System.Data.Common;
+using Subtext.Scripting;
 
 namespace SqlConsole.Host
 {
 
     class QueryHandler<TQueryResult> : IQueryHandler
     {
+        private readonly Config _config;
         readonly Func<IDb, string, TQueryResult> _runQuery;
         private readonly IResultProcessor<TQueryResult> _resultProcessor;
 
-        public QueryHandler(Func<IDb, string, TQueryResult> runQuery, IResultProcessor<TQueryResult> resultProcessor)
+        public QueryHandler(Config config, Func<IDb, string, TQueryResult> runQuery, IResultProcessor<TQueryResult> resultProcessor)
         {
+            _config = config;
             _runQuery = runQuery;
             _resultProcessor = resultProcessor;
         }
@@ -20,7 +23,8 @@ namespace SqlConsole.Host
             var splitter = new ScriptSplitter(query);
             try
             {
-                using (var db = Db.FromConfig("Default"))
+                var providerName = _config.Provider.Name;
+                using (var db = new Db(_config.ConnectionString, _config.Provider == Provider.Default ? null : providerName))
                 {
                     foreach (var script in splitter)
                     {
@@ -32,11 +36,6 @@ namespace SqlConsole.Host
             catch (DbException e)
             {
                 Console.WriteLine(e.Message);
-                //Console.WriteLine("Line number: {0}", e.LineNumber);
-                //if (!string.IsNullOrEmpty(e.Procedure))
-                //    Console.WriteLine("Procedure  : {0}", e.Procedure);
-                //Console.WriteLine("Severity   : {0}", e.Class);
-                //Console.WriteLine("State      : {0}", e.State);
             }
 
         }

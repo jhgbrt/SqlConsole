@@ -22,6 +22,18 @@ namespace SqlConsole.Host
 
         public void Process(DataTable result)
         {
+            if (result.Rows.Count == 0)
+            {
+                Console.WriteLine("ok");
+                return;
+            }
+
+            if (result.Rows.Count == 1 && result.Columns.Count == 1)
+            {
+                Console.WriteLine(result.Rows[0][0]);
+                return;
+            }
+
             var maxLength = _windowWidth - 1;
             var columnLengths = result.ColumnLengths(maxLength, _separator.Length);
             var columnNames = result.Columns.OfType<DataColumn>().Select(c => c.ColumnName.OfLength(columnLengths[c])).ToList();

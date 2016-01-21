@@ -9,10 +9,9 @@ namespace SqlConsole.Host
             var config = Config.Create(args);
             if (config.Help)
             {
-                PrintUsage();
+                PrintUsage(config);
                 return;
             }
-
             try
             {
                 if (!string.IsNullOrEmpty(config.Query))
@@ -21,7 +20,7 @@ namespace SqlConsole.Host
                 }
                 else
                 {
-                    Repl.Enter();
+                    new Repl(config).Enter();
                 }
 
             }
@@ -29,11 +28,11 @@ namespace SqlConsole.Host
             {
                 Console.WriteLine(e);
                 Console.WriteLine();
-                Config.PrintUsage();
+                config.PrintUsage();
             }
         }
 
-        private static void PrintUsage()
+        private static void PrintUsage(Config config)
         {
             Console.WriteLine("usage: sql [query or file] [options]");
             Console.WriteLine("");
@@ -43,7 +42,7 @@ namespace SqlConsole.Host
             Console.WriteLine("");
             Console.WriteLine("      query or file: an inline SQL query, or the path to a file containing such query");
             Console.WriteLine("");
-            Config.PrintUsage();
+            config.PrintUsage();
         }
     }
 }

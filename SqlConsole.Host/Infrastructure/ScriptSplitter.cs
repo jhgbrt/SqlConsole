@@ -1,12 +1,11 @@
 ﻿// Courtesy of SubText project/Phil Haack
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Security.Permissions;
 
-namespace SqlConsole.Host
+namespace Subtext.Scripting
 {
     [Serializable]
     public class SqlParseException : Exception

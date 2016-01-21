@@ -8,17 +8,38 @@ namespace SqlConsole.Host
 {
     static class Extension
     {
+        // argument list is used for type inference
+        // ReSharper disable once UnusedParameter.Local
         static LambdaComparer<T> CompareBy<T>(this IEnumerable<T> list, Func<T, int> f)
         {
             return new LambdaComparer<T>(f);
         }
+        public static string BookTitleToSentence(this string s)
+        {
+            var sb = new StringBuilder();
+            sb.Append(s[0]);
+            for  (var i = 1; i < s.Length; i++)
+            {
+                var c = s[i];
+                if (char.IsUpper(c))
+                {
+                    sb.Append(" ");
+                    sb.Append(char.ToLowerInvariant(c));
+                }
+                else
+                {
+                    sb.Append(c);
+                }
+            }
+            return sb.ToString();
+        } 
 
         public static IEnumerable<string> Words(this string s)
         {
             var sb = new StringBuilder();
             foreach (var c in s)
             {
-                if (!char.IsWhiteSpace(c))
+                if (char.IsLetterOrDigit(c))
                     sb.Append(c);
                 else
                 {

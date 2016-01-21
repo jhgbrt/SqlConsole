@@ -3,8 +3,12 @@
 //
 // Authors:
 //  Jonathan Pryor <jpryor@novell.com>
+//  Federico Di Gregorio <fog@initd.org>
+//  Rolf Bjarne Kvinge <rolf@xamarin.com>
 //
 // Copyright (C) 2008 Novell (http://www.novell.com)
+// Copyright (C) 2009 Federico Di Gregorio.
+// Copyright (C) 2012 Xamarin Inc (http://www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -128,8 +132,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Runtime.Serialization;
+using System.Security.Permissions;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -144,9 +150,98 @@ using NDesk.Options;
 #if NDESK_OPTIONS
 namespace NDesk.Options
 #else
-namespace SqlConsole.Host
+namespace Mono.Options
 #endif
 {
+    static class StringCoda
+    {
+
+        public static IEnumerable<string> WrappedLines(string self, params int[] widths)
+        {
+            IEnumerable<int> w = widths;
+            return WrappedLines(self, w);
+        }
+
+        public static IEnumerable<string> WrappedLines(string self, IEnumerable<int> widths)
+        {
+            if (widths == null)
+                throw new ArgumentNullException("widths");
+            return CreateWrappedLinesIterator(self, widths);
+        }
+
+        private static IEnumerable<string> CreateWrappedLinesIterator(string self, IEnumerable<int> widths)
+        {
+            if (string.IsNullOrEmpty(self))
+            {
+                yield return string.Empty;
+                yield break;
+            }
+            using (IEnumerator<int> ewidths = widths.GetEnumerator())
+            {
+                bool? hw = null;
+                int width = GetNextWidth(ewidths, int.MaxValue, ref hw);
+                int start = 0, end;
+                do
+                {
+                    end = GetLineEnd(start, width, self);
+                    char c = self[end - 1];
+                    if (char.IsWhiteSpace(c))
+                        --end;
+                    bool needContinuation = end != self.Length && !IsEolChar(c);
+                    string continuation = "";
+                    if (needContinuation)
+                    {
+                        --end;
+                        continuation = "-";
+                    }
+                    string line = self.Substring(start, end - start) + continuation;
+                    yield return line;
+                    start = end;
+                    if (char.IsWhiteSpace(c))
+                        ++start;
+                    width = GetNextWidth(ewidths, width, ref hw);
+                } while (start < self.Length);
+            }
+        }
+
+        private static int GetNextWidth(IEnumerator<int> ewidths, int curWidth, ref bool? eValid)
+        {
+            if (!eValid.HasValue || (eValid.HasValue && eValid.Value))
+            {
+                curWidth = (eValid = ewidths.MoveNext()).Value ? ewidths.Current : curWidth;
+                // '.' is any character, - is for a continuation
+                const string minWidth = ".-";
+                if (curWidth < minWidth.Length)
+                    throw new ArgumentOutOfRangeException("widths",
+                            string.Format("Element must be >= {0}, was {1}.", minWidth.Length, curWidth));
+                return curWidth;
+            }
+            // no more elements, use the last element.
+            return curWidth;
+        }
+
+        private static bool IsEolChar(char c)
+        {
+            return !char.IsLetterOrDigit(c);
+        }
+
+        private static int GetLineEnd(int start, int length, string description)
+        {
+            int end = System.Math.Min(start + length, description.Length);
+            int sep = -1;
+            for (int i = start; i < end; ++i)
+            {
+                if (description[i] == '\n')
+                    return i + 1;
+                if (IsEolChar(description[i]))
+                    sep = i + 1;
+            }
+            if (sep == -1 || end == description.Length)
+                return end;
+            return sep;
+        }
+    }
+
     public class OptionValueCollection : IList, IList<string>
     {
 
@@ -298,13 +393,19 @@ namespace SqlConsole.Host
         OptionValueType type;
         int count;
         string[] separators;
+        bool hidden;
 
         protected Option(string prototype, string description)
-            : this(prototype, description, 1)
+            : this(prototype, description, 1, false)
         {
         }
 
         protected Option(string prototype, string description, int maxValueCount)
+            : this(prototype, description, maxValueCount, false)
+        {
+        }
+
+        protected Option(string prototype, string description, int maxValueCount, bool hidden)
         {
             if (prototype == null)
                 throw new ArgumentNullException("prototype");
@@ -314,10 +415,19 @@ namespace SqlConsole.Host
                 throw new ArgumentOutOfRangeException("maxValueCount");
 
             this.prototype = prototype;
-            this.names = prototype.Split('|');
             this.description = description;
             this.count = maxValueCount;
+            this.names = (this is OptionSet.Category)
+                // append GetHashCode() so that "duplicate" categories have distinct
+                // names, e.g. adding multiple "" categories should be valid.
+                ? new[] { prototype + this.GetHashCode() }
+                : prototype.Split('|');
+
+            if (this is OptionSet.Category)
+                return;
+
             this.type = ParsePrototype();
+            this.hidden = hidden;
 
             if (this.count == 0 && type != OptionValueType.None)
                 throw new ArgumentException(
@@ -340,6 +450,7 @@ namespace SqlConsole.Host
         public string Description { get { return description; } }
         public OptionValueType OptionValueType { get { return type; } }
         public int MaxValueCount { get { return count; } }
+        public bool Hidden { get { return hidden; } }
 
         public string[] GetNames()
         {
@@ -353,16 +464,6 @@ namespace SqlConsole.Host
             return (string[])separators.Clone();
         }
 
-#if NOTYPECONVERTER
-		protected static T Parse<T> (string value, OptionContext c)
-		{
-			if (typeof (T) == typeof (int))
-				return (T) (object) int.Parse (value);
-			else if (typeof (T) == typeof (string))
-				return (T) (object) value;
-			throw new OptionException ("Could not convert parameter", c.OptionName, null);
-		}
-#else
         protected static T Parse<T>(string value, OptionContext c)
         {
             Type tt = typeof(T);
@@ -387,7 +488,6 @@ namespace SqlConsole.Host
             }
             return t;
         }
-#endif
 
         internal string[] Names { get { return names; } }
         internal string[] ValueSeparators { get { return separators; } }
@@ -487,6 +587,107 @@ namespace SqlConsole.Host
         }
     }
 
+    public abstract class ArgumentSource
+    {
+
+        protected ArgumentSource()
+        {
+        }
+
+        public abstract string[] GetNames();
+        public abstract string Description { get; }
+        public abstract bool GetArguments(string value, out IEnumerable<string> replacement);
+
+        public static IEnumerable<string> GetArgumentsFromFile(string file)
+        {
+            return GetArguments(File.OpenText(file), true);
+        }
+
+        public static IEnumerable<string> GetArguments(TextReader reader)
+        {
+            return GetArguments(reader, false);
+        }
+
+        // Cribbed from mcs/driver.cs:LoadArgs(string)
+        static IEnumerable<string> GetArguments(TextReader reader, bool close)
+        {
+            try
+            {
+                StringBuilder arg = new StringBuilder();
+
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    int t = line.Length;
+
+                    for (int i = 0; i < t; i++)
+                    {
+                        char c = line[i];
+
+                        if (c == '"' || c == '\'')
+                        {
+                            char end = c;
+
+                            for (i++; i < t; i++)
+                            {
+                                c = line[i];
+
+                                if (c == end)
+                                    break;
+                                arg.Append(c);
+                            }
+                        }
+                        else if (c == ' ')
+                        {
+                            if (arg.Length > 0)
+                            {
+                                yield return arg.ToString();
+                                arg.Length = 0;
+                            }
+                        }
+                        else
+                            arg.Append(c);
+                    }
+                    if (arg.Length > 0)
+                    {
+                        yield return arg.ToString();
+                        arg.Length = 0;
+                    }
+                }
+            }
+            finally
+            {
+                if (close)
+                    reader.Close();
+            }
+        }
+    }
+
+    public class ResponseFileSource : ArgumentSource
+    {
+
+        public override string[] GetNames()
+        {
+            return new string[] { "@file" };
+        }
+
+        public override string Description
+        {
+            get { return "Read response file for more options."; }
+        }
+
+        public override bool GetArguments(string value, out IEnumerable<string> replacement)
+        {
+            if (string.IsNullOrEmpty(value) || !value.StartsWith("@"))
+            {
+                replacement = null;
+                return false;
+            }
+            replacement = ArgumentSource.GetArgumentsFromFile(value.Substring(1));
+            return true;
+        }
+    }
+
     [Serializable]
     public class OptionException : Exception
     {
@@ -519,7 +720,9 @@ namespace SqlConsole.Host
             get { return this.option; }
         }
 
-        //[SecurityPermission (SecurityAction.LinkDemand, SerializationFormatter = true)]
+#pragma warning disable 618 // SecurityPermissionAttribute is obsolete
+        [SecurityPermission(SecurityAction.LinkDemand, SerializationFormatter = true)]
+#pragma warning restore 618
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             base.GetObjectData(info, context);
@@ -539,14 +742,25 @@ namespace SqlConsole.Host
         public OptionSet(Converter<string, string> localizer)
         {
             this.localizer = localizer;
+            this.roSources = new ReadOnlyCollection<ArgumentSource>(sources);
         }
 
         Converter<string, string> localizer;
+        Func<string, string, bool> parseUnknownOption = delegate { return true; };
 
         public Converter<string, string> MessageLocalizer
         {
             get { return localizer; }
         }
+
+        List<ArgumentSource> sources = new List<ArgumentSource>();
+        ReadOnlyCollection<ArgumentSource> roSources;
+
+        public ReadOnlyCollection<ArgumentSource> ArgumentSources
+        {
+            get { return roSources; }
+        }
+
 
         protected override string GetKeyForItem(Option item)
         {
@@ -582,8 +796,8 @@ namespace SqlConsole.Host
 
         protected override void RemoveItem(int index)
         {
-            base.RemoveItem(index);
             Option p = Items[index];
+            base.RemoveItem(index);
             // KeyedCollection.RemoveItem() handles the 0th item
             for (int i = 1; i < p.Names.Length; ++i)
             {
@@ -594,7 +808,6 @@ namespace SqlConsole.Host
         protected override void SetItem(int index, Option item)
         {
             base.SetItem(index, item);
-            RemoveItem(index);
             AddImpl(item);
         }
 
@@ -620,6 +833,32 @@ namespace SqlConsole.Host
             }
         }
 
+        public OptionSet Add(string header)
+        {
+            if (header == null)
+                throw new ArgumentNullException("header");
+            Add(new Category(header));
+            return this;
+        }
+
+        internal sealed class Category : Option
+        {
+
+            // Prototype starts with '=' because this is an invalid prototype
+            // (see Option.ParsePrototype(), and thus it'll prevent Category
+            // instances from being accidentally used as normal options.
+            public Category(string description)
+                : base("=:Category:= " + description, description)
+            {
+            }
+
+            protected override void OnParseComplete(OptionContext c)
+            {
+                throw new NotSupportedException("Category.OnParseComplete should not be invoked.");
+            }
+        }
+
+
         public new OptionSet Add(Option option)
         {
             base.Add(option);
@@ -631,7 +870,12 @@ namespace SqlConsole.Host
             Action<OptionValueCollection> action;
 
             public ActionOption(string prototype, string description, int count, Action<OptionValueCollection> action)
-                : base(prototype, description, count)
+                : this(prototype, description, count, action, false)
+            {
+            }
+
+            public ActionOption(string prototype, string description, int count, Action<OptionValueCollection> action, bool hidden)
+                : base(prototype, description, count, hidden)
             {
                 if (action == null)
                     throw new ArgumentNullException("action");
@@ -651,12 +895,23 @@ namespace SqlConsole.Host
 
         public OptionSet Add(string prototype, string description, Action<string> action)
         {
+            return Add(prototype, description, action, false);
+        }
+
+        public OptionSet Add(string prototype, string description, Action<string> action, bool hidden)
+        {
+            var o = CreateOption(prototype, description, action, hidden);
+            base.Add(o);
+            return this;
+        }
+
+        public static Option CreateOption(string prototype, string description, Action<string> action, bool hidden = false)
+        {
             if (action == null)
                 throw new ArgumentNullException("action");
             Option p = new ActionOption(prototype, description, 1,
-                    delegate(OptionValueCollection v) { action(v[0]); });
-            base.Add(p);
-            return this;
+                delegate(OptionValueCollection v) { action(v[0]); }, hidden);
+            return p;
         }
 
         public OptionSet Add(string prototype, OptionAction<string, string> action)
@@ -666,11 +921,28 @@ namespace SqlConsole.Host
 
         public OptionSet Add(string prototype, string description, OptionAction<string, string> action)
         {
+            return Add(prototype, description, action, false);
+        }
+
+        public OptionSet Add(string prototype, string description, OptionAction<string, string> action, bool hidden)
+        {
             if (action == null)
                 throw new ArgumentNullException("action");
             Option p = new ActionOption(prototype, description, 2,
-                    delegate(OptionValueCollection v) { action(v[0], v[1]); });
+                    delegate(OptionValueCollection v) { action(v[0], v[1]); }, hidden);
             base.Add(p);
+            return this;
+        }
+
+        public OptionSet OnUnknownOption(Func<string, string, bool> callback)
+        {
+            this.parseUnknownOption = callback;
+            return this;
+        }
+
+        public OptionSet AddRange(IEnumerable<Option> options)
+        {
+            foreach (var o in options) Add(o);
             return this;
         }
 
@@ -732,48 +1004,30 @@ namespace SqlConsole.Host
             return Add(new ActionOption<TKey, TValue>(prototype, description, action));
         }
 
-        protected virtual OptionContext CreateOptionContext()
+        public OptionSet Add(ArgumentSource source)
         {
-            return new OptionContext(this);
+            if (source == null)
+                throw new ArgumentNullException("source");
+            sources.Add(source);
+            return this;
         }
 
-#if LINQ
-		public List<string> Parse (IEnumerable<string> arguments)
+        protected virtual OptionContext CreateOptionContext()
 		{
-			bool process = true;
-			OptionContext c = CreateOptionContext ();
-			c.OptionIndex = -1;
-			var def = GetOptionForName ("<>");
-			var unprocessed = 
-				from argument in arguments
-				where ++c.OptionIndex >= 0 && (process || def != null)
-					? process
-						? argument == "--" 
-							? (process = false)
-							: !Parse (argument, c)
-								? def != null 
-									? Unprocessed (null, def, c, argument) 
-									: true
-								: false
-						: def != null 
-							? Unprocessed (null, def, c, argument)
-							: true
-					: true
-				select argument;
-			List<string> r = unprocessed.ToList ();
-			if (c.Option != null)
-				c.Option.Invoke (c);
-			return r;
+            return new OptionContext(this);
 		}
-#else
+
         public List<string> Parse(IEnumerable<string> arguments)
         {
+            if (arguments == null)
+                throw new ArgumentNullException("arguments");
             OptionContext c = CreateOptionContext();
             c.OptionIndex = -1;
             bool process = true;
             List<string> unprocessed = new List<string>();
             Option def = Contains("<>") ? this["<>"] : null;
-            foreach (string argument in arguments)
+            ArgumentEnumerator ae = new ArgumentEnumerator(arguments);
+            foreach (string argument in ae)
             {
                 ++c.OptionIndex;
                 if (argument == "--")
@@ -786,6 +1040,8 @@ namespace SqlConsole.Host
                     Unprocessed(unprocessed, def, c, argument);
                     continue;
                 }
+                if (AddSource(ae, argument))
+                    continue;
                 if (!Parse(argument, c))
                     Unprocessed(unprocessed, def, c, argument);
             }
@@ -793,7 +1049,54 @@ namespace SqlConsole.Host
                 c.Option.Invoke(c);
             return unprocessed;
         }
-#endif
+
+        class ArgumentEnumerator : IEnumerable<string>
+        {
+            List<IEnumerator<string>> sources = new List<IEnumerator<string>>();
+
+            public ArgumentEnumerator(IEnumerable<string> arguments)
+            {
+                sources.Add(arguments.GetEnumerator());
+            }
+
+            public void Add(IEnumerable<string> arguments)
+            {
+                sources.Add(arguments.GetEnumerator());
+            }
+
+            public IEnumerator<string> GetEnumerator()
+            {
+                do
+                {
+                    IEnumerator<string> c = sources[sources.Count - 1];
+                    if (c.MoveNext())
+                        yield return c.Current;
+                    else
+                    {
+                        c.Dispose();
+                        sources.RemoveAt(sources.Count - 1);
+                    }
+                } while (sources.Count > 0);
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+        }
+
+        bool AddSource(ArgumentEnumerator ae, string argument)
+        {
+            foreach (ArgumentSource source in sources)
+            {
+                IEnumerable<string> replacement;
+                if (!source.GetArguments(argument, out replacement))
+                    continue;
+                ae.Add(replacement);
+                return true;
+            }
+            return false;
+        }
 
         private static bool Unprocessed(ICollection<string> extra, Option def, OptionContext c, string argument)
         {
@@ -863,6 +1166,10 @@ namespace SqlConsole.Host
                 }
                 return true;
             }
+
+            if (parseUnknownOption(n, v))
+                return true;
+
             // no match; is it a bool option?
             if (ParseBool(argument, n, c))
                 return true;
@@ -877,7 +1184,7 @@ namespace SqlConsole.Host
         {
             if (option != null)
                 foreach (string o in c.Option.ValueSeparators != null
-                        ? option.Split(c.Option.ValueSeparators, StringSplitOptions.None)
+                        ? option.Split(c.Option.ValueSeparators, c.Option.MaxValueCount - c.OptionValues.Count, StringSplitOptions.None)
                         : new string[] { option })
                 {
                     c.OptionValues.Add(o);
@@ -926,7 +1233,7 @@ namespace SqlConsole.Host
                     if (i == 0)
                         return false;
                     throw new OptionException(string.Format(localizer(
-                                    "Cannot bundle unregistered option '{0}'."), opt), opt);
+                                    "Cannot use unregistered option '{0}' in bundle '{1}'."), rn, f + n), null);
                 }
                 p = this[rn];
                 switch (p.OptionValueType)
@@ -959,12 +1266,25 @@ namespace SqlConsole.Host
         }
 
         private const int OptionWidth = 29;
+        private const int Description_FirstWidth = 80 - OptionWidth;
+        private const int Description_RemWidth = 80 - OptionWidth - 2;
 
         public void WriteOptionDescriptions(TextWriter o)
         {
             foreach (Option p in this)
             {
                 int written = 0;
+
+                if (p.Hidden)
+                    continue;
+
+                Category c = p as Category;
+                if (c != null)
+                {
+                    WriteDescription(o, p.Description, "", 80, 80);
+                    continue;
+                }
+
                 if (!WriteOptionPrototype(o, p, ref written))
                     continue;
 
@@ -976,9 +1296,43 @@ namespace SqlConsole.Host
                     o.Write(new string(' ', OptionWidth));
                 }
 
+                WriteDescription(o, p.Description, new string(' ', OptionWidth + 2),
+                        Description_FirstWidth, Description_RemWidth);
+            }
+
+            foreach (ArgumentSource s in sources)
+            {
+                string[] names = s.GetNames();
+                if (names == null || names.Length == 0)
+                    continue;
+
+                int written = 0;
+
+                Write(o, ref written, "  ");
+                Write(o, ref written, names[0]);
+                for (int i = 1; i < names.Length; ++i)
+                {
+                    Write(o, ref written, ", ");
+                    Write(o, ref written, names[i]);
+                }
+
+                if (written < OptionWidth)
+                    o.Write(new string(' ', OptionWidth - written));
+                else
+                {
+                    o.WriteLine();
+                    o.Write(new string(' ', OptionWidth));
+                }
+
+                WriteDescription(o, s.Description, new string(' ', OptionWidth + 2),
+                        Description_FirstWidth, Description_RemWidth);
+            }
+        }
+
+        void WriteDescription(TextWriter o, string value, string prefix, int firstWidth, int remWidth)
+        {
                 bool indent = false;
-                string prefix = new string(' ', OptionWidth + 2);
-                foreach (string line in GetLines(localizer(GetDescription(p.Description))))
+            foreach (string line in GetLines(localizer(GetDescription(value)), firstWidth, remWidth))
                 {
                     if (indent)
                         o.Write(prefix);
@@ -986,7 +1340,6 @@ namespace SqlConsole.Host
                     indent = true;
                 }
             }
-        }
 
         bool WriteOptionPrototype(TextWriter o, Option p, ref int written)
         {
@@ -1126,53 +1479,9 @@ namespace SqlConsole.Host
             return sb.ToString();
         }
 
-        private static IEnumerable<string> GetLines(string description)
+        private static IEnumerable<string> GetLines(string description, int firstWidth, int remWidth)
         {
-            if (string.IsNullOrEmpty(description))
-            {
-                yield return string.Empty;
-                yield break;
+            return StringCoda.WrappedLines(description, firstWidth, remWidth);
+        }
             }
-            int length = 80 - OptionWidth - 1;
-            int start = 0, end;
-            do
-            {
-                end = GetLineEnd(start, length, description);
-                char c = description[end - 1];
-                if (char.IsWhiteSpace(c))
-                    --end;
-                bool writeContinuation = end != description.Length && !IsEolChar(c);
-                string line = description.Substring(start, end - start) +
-                        (writeContinuation ? "-" : "");
-                yield return line;
-                start = end;
-                if (char.IsWhiteSpace(c))
-                    ++start;
-                length = 80 - OptionWidth - 2 - 1;
-            } while (end < description.Length);
-        }
-
-        private static bool IsEolChar(char c)
-        {
-            return !char.IsLetterOrDigit(c);
-        }
-
-        private static int GetLineEnd(int start, int length, string description)
-        {
-            int end = System.Math.Min(start + length, description.Length);
-            int sep = -1;
-            for (int i = start; i < end; ++i)
-            {
-                if (description[i] == '\n')
-                    return i + 1;
-                if (IsEolChar(description[i]))
-                    sep = i + 1;
-            }
-            if (sep == -1 || end == description.Length)
-                return end;
-            return sep;
-        }
     }
-}
-
-
