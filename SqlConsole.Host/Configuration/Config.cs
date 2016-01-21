@@ -13,6 +13,27 @@ namespace SqlConsole.Host
         private readonly Provider _provider;
         private readonly MyOptionSet _optionSet;
 
+        public static Config Create(string[] args) => new Config(args);
+
+        public void PrintUsage()
+        {
+            _optionSet.WriteOptionDescriptions(Console.Out);
+        }
+
+        public string ProviderName => _provider.Name;
+
+        public string ConnectionString { get; }
+
+        public bool Help { get;  }
+
+        public string Output { get; }
+
+        public string Query { get; }
+
+        public bool Scalar { get; }
+
+        public bool NonQuery { get; }
+
         class MyOptionSet : OptionSet
         {
             public MyOptionSet(
@@ -28,12 +49,6 @@ namespace SqlConsole.Host
                 OnUnknownOption(onUnknownOption);
             }
         }
-
-        public string ProviderName => _provider.Name;
-
-        public string ConnectionString { get; }
-
-        public bool Help { get;  }
 
         private Config(string[] args)
         {
@@ -113,21 +128,6 @@ namespace SqlConsole.Host
                     _provider = new Provider(settings.ProviderName);
                 }
             }
-        }
-
-        public string Output { get;  }
-
-        public string Query { get; }
-
-        public bool Scalar { get; }
-
-        public bool NonQuery { get; }
-
-        public static Config Create(string[] args) => new Config(args);
-
-        public void PrintUsage()
-        {
-            _optionSet.WriteOptionDescriptions(Console.Out);
         }
     }
 }
