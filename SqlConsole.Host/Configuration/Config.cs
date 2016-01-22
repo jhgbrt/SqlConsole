@@ -55,21 +55,25 @@ namespace SqlConsole.Host
             Provider? p = null;
             new OptionSet { { "providerName=", "", s => p = new Provider(s) } }.Parse(args);
 
-            Provider provider = p ?? Provider.Default;
+            var provider = p ?? Provider.Default;
 
             string output = null;
             bool scalar = false, nonquery = false, help = false;
             var commandLine = new CommandLine();
             var connectionString = new ConnectionString();
 
+            Action<CommandLineParam, string> setCommandLineValue = (cl, s) => commandLine[cl] = Value.From(s);
+
+            Func<string, string, bool> onUnknownOption = (name, value) =>
+            {
+                connectionString[new ConnectionStringParam(name)] = Value.From(value);
+                return true;
+            };
+
             var options = new MyOptionSet(
                 CommandLineToConnectionString(provider), 
-                (cl, s) => commandLine[cl] = Value.From(s),
-                (name, value) =>
-                {
-                    connectionString[new ConnectionStringParam(name)] = Value.From(value);
-                    return true;
-                })
+                setCommandLineValue,
+                onUnknownOption)
             {
                 {
                     "output=",

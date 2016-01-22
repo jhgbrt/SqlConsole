@@ -1,9 +1,11 @@
 ﻿// Courtesy of SubText project/Phil Haack
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.Serialization;
-using System.Security.Permissions;
+using System.Text;
 using static System.Char;
 
 namespace Subtext.Scripting
@@ -29,25 +31,19 @@ namespace Subtext.Scripting
             : base(info, context)
         {
         }
-
-        [SecurityPermission(SecurityAction.LinkDemand, Flags = SecurityPermissionFlag.SerializationFormatter)]
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            base.GetObjectData(info, context);
-        }
     }
 
     public class ScriptSplitter : IEnumerable<string>
     {
-        private readonly System.IO.TextReader _reader;
-        private System.Text.StringBuilder _builder = new System.Text.StringBuilder();
+        private readonly TextReader _reader;
+        private StringBuilder _builder = new StringBuilder();
         private char _current;
         private char _lastChar;
         private ScriptReader _scriptReader;
 
         public ScriptSplitter(string script)
         {
-            _reader = new System.IO.StringReader(script);
+            _reader = new StringReader(script);
             _scriptReader = new SeparatorLineReader(this);
         }
 
@@ -67,7 +63,7 @@ namespace Subtext.Scripting
                 var script = _builder.ToString().Trim();
                 if (script.Length > 0)
                 {
-                    yield return (script);
+                    yield return script;
                 }
                 Reset();
             }
@@ -75,7 +71,7 @@ namespace Subtext.Scripting
             var scriptRemains = _builder.ToString().Trim();
             if (scriptRemains.Length > 0)
             {
-                yield return (scriptRemains);
+                yield return scriptRemains;
             }
         }
 
@@ -108,12 +104,10 @@ namespace Subtext.Scripting
         void Reset()
         {
             _current = _lastChar = MinValue;
-            _builder = new System.Text.StringBuilder();
+            _builder = new StringBuilder();
         }
     }
-
-
-
+    
     abstract class ScriptReader
     {
         protected readonly ScriptSplitter Splitter;
@@ -239,12 +233,10 @@ namespace Subtext.Scripting
 
         #endregion
     }
-
-
-
+    
     class SeparatorLineReader : ScriptReader
     {
-        private System.Text.StringBuilder _builder = new System.Text.StringBuilder();
+        private StringBuilder _builder = new StringBuilder();
         private bool _foundGo;
         private bool _gFound;
 
@@ -257,7 +249,7 @@ namespace Subtext.Scripting
         {
             _foundGo = false;
             _gFound = false;
-            _builder = new System.Text.StringBuilder();
+            _builder = new StringBuilder();
         }
 
         protected override bool ReadDashDashComment()

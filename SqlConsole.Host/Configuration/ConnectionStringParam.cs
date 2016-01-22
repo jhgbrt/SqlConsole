@@ -1,8 +1,6 @@
-using System;
-
 namespace SqlConsole.Host
 {
-    struct ConnectionStringParam : IEquatable<ConnectionStringParam>
+    struct ConnectionStringParam
     {
         public readonly string Name;
 
@@ -13,16 +11,11 @@ namespace SqlConsole.Host
         }
 
         #region Equality
-        public bool Equals(ConnectionStringParam other) => string.Equals(Name, other.Name);
-
+        private bool Equals(ConnectionStringParam other) => string.Equals(Name, other.Name);
         public override bool Equals(object obj) => !ReferenceEquals(null, obj) && (obj is ConnectionStringParam && Equals((ConnectionStringParam) obj));
-
         public override int GetHashCode() => Name?.GetHashCode() ?? 0;
-
         public static bool operator ==(ConnectionStringParam left, ConnectionStringParam right) => left.Equals(right);
-
         public static bool operator !=(ConnectionStringParam left, ConnectionStringParam right) => !(left == right);
-
         #endregion
 
         public override string ToString() => Name;

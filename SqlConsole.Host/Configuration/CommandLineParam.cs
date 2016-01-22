@@ -16,37 +16,18 @@ namespace SqlConsole.Host
         }
 
         #region Equality
-        public bool Equals(CommandLineParam other)
-        {
-            return string.Equals(Name, other.Name);
-        }
+        public bool Equals(CommandLineParam other) => string.Equals(Name, other.Name);
 
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj)) return false;
-            return obj is CommandLineParam && Equals((CommandLineParam) obj);
-        }
+        public override bool Equals(object obj) => !ReferenceEquals(null, obj) && (obj is CommandLineParam && Equals((CommandLineParam) obj));
 
-        public override int GetHashCode()
-        {
-            return (Name != null ? Name.GetHashCode() : 0);
-        }
-        
-        public static bool operator ==(CommandLineParam left, CommandLineParam right)
-        {
-            return left.Equals(right);
-        }
+        public override int GetHashCode() => Name?.GetHashCode() ?? 0;
 
-        public static bool operator !=(CommandLineParam left, CommandLineParam right)
-        {
-            return !(left == right);
-        }
+        public static bool operator ==(CommandLineParam left, CommandLineParam right) => left.Equals(right);
+
+        public static bool operator !=(CommandLineParam left, CommandLineParam right) => !(left == right);
         #endregion
 
-        public override string ToString()
-        {
-            return Name;
-        }
+        public override string ToString() => Name;
 
         // ReSharper disable InconsistentNaming
         public static readonly CommandLineParam server = new CommandLineParam("server", "The server or data source to connect to.");

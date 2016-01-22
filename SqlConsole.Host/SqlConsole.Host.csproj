@@ -57,7 +57,6 @@
     <Compile Include="Configuration\ConnectionStringBuilder.cs" />
     <Compile Include="Configuration\Provider.cs" />
     <Compile Include="Configuration\Value.cs" />
-    <Compile Include="Infrastructure\CollectionOf.cs" />
     <Compile Include="Repl.cs" />
     <Compile Include="Visualizers\ConsoleTableVisualizer.cs" />
     <Compile Include="Visualizers\ConsoleWriter.cs" />

@@ -11,16 +11,11 @@ namespace SqlConsole.Host
         }
 
         #region Equality
-        public bool Equals(Provider other) => string.Equals(Name, other.Name);
-
+        private bool Equals(Provider other) => string.Equals(Name, other.Name);
         public override bool Equals(object obj) => !ReferenceEquals(null, obj) && (obj is Provider && Equals((Provider) obj));
-
         public override int GetHashCode() => Name?.GetHashCode() ?? 0;
-
         public static bool operator ==(Provider left, Provider right) => left.Equals(right);
-
         public static bool operator !=(Provider left, Provider right) => !(left == right);
-
         #endregion
 
         public override string ToString() => Name ?? "Default";

@@ -17,7 +17,7 @@ namespace SqlConsole.Host
             )
         {
             var errors = (
-                from rule in RulesList[provider]
+                from rule in Rules[provider]
                 where !rule.Apply(commandLine)
                 let parameterStr = string.Join(";", commandLine.Select(kv => $"{kv.Key}={kv.Value}"))
                 select "Error while mapping parameter values to connection string " +
@@ -92,7 +92,7 @@ namespace SqlConsole.Host
             {SqLite, password, Password}
         }.ToLookup(p => p.Provider);
 
-        private static readonly RuleList RulesList = new RuleList
+        private static readonly RuleList Rules = new RuleList
         {
             {ServerIsRequired, Sqlserver, Oracle, MySql},
             {SetIntegratedSecurityIfNoUser, Sqlserver, Oracle, MySql, Default},
@@ -176,7 +176,6 @@ namespace SqlConsole.Host
             public string Description { get; }
             public override string ToString() => Description;
         }
-
         #endregion
     }
 }

@@ -61,7 +61,6 @@ namespace SqlConsole.Host
         }
         public static Dictionary<DataColumn, int> ColumnLengths(this DataTable dt, int totalWidth, int separatorSize)
         {
-
             var maxLengths = (
                 from col in dt.Columns.OfType<DataColumn>()
                 let rows = dt.Rows.OfType<DataRow>().Select(row => row[col].ToString()).ToList()
