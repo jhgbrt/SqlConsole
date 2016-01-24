@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("SqlConsole.Host")]
+[assembly: AssemblyTitle("SqlConsole.UnitTests")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Jeroen Haegebaert")]
-[assembly: AssemblyProduct("SqlConsole.Host")]
-[assembly: AssemblyCopyright("Copyright © Jeroen Haegebaert 2016")]
+[assembly: AssemblyCompany("")]
+[assembly: AssemblyProduct("SqlConsole.UnitTests")]
+[assembly: AssemblyCopyright("Copyright ©  2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("d8542437-f467-4be9-92bd-95fc1ea33c31")]
+[assembly: Guid("b324c901-ba2c-414d-93db-c063abae4ff3")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -34,4 +34,3 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: InternalsVisibleTo("SqlConsole.UnitTests")]

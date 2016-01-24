@@ -10,6 +10,8 @@ namespace SqlConsole.Host
             get { return TryGet(CommandLineParam.server); }
             set { SetValue(CommandLineParam.server, value); }
         }
+        public Value? Database => TryGet(CommandLineParam.database);
+        public Value? File => TryGet(CommandLineParam.file);
 
         public Value? Port => TryGet(CommandLineParam.port);
 

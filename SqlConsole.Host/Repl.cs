@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -7,6 +8,9 @@ namespace SqlConsole.Host
     internal class Repl
     {
         private readonly Config _config;
+        private readonly TextWriter _textWriter = Console.Out;
+        private readonly TextReader _textReader = Console.In;
+
         public Repl(Config config)
         {
             _config = config;
@@ -29,18 +33,18 @@ namespace SqlConsole.Host
                     case "exit":
                         return;
                     default:
-                        Console.WriteLine();
+                        _textWriter.WriteLine();
                         QueryHandlerFactory.DataTable(_config, new ConsoleTableVisualizer()).Execute(query);
                         break;
                 }
-                Console.WriteLine();
+                _textWriter.WriteLine();
             }
         }
 
-        private static string ReadQuery()
+        private string ReadQuery()
         {
             var sb = new StringBuilder();
-            var readLine = Console.ReadLine();
+            var readLine = _textReader.ReadLine();
             while (true)
             {
                 if (string.IsNullOrWhiteSpace(readLine))
@@ -61,7 +65,7 @@ namespace SqlConsole.Host
                 }
 
                 sb.AppendLine(readLine);
-                readLine = Console.ReadLine();
+                readLine = _textReader.ReadLine();
             }
             return sb.ToString();
         }

@@ -11,8 +11,8 @@ namespace SqlConsole.Host
         }
 
         #region Equality
-        private bool Equals(ConnectionStringParam other) => Equals(_value, other.Name);
-        public override bool Equals(object obj) => !ReferenceEquals(null, obj) && (obj is ConnectionStringParam && Equals((ConnectionStringParam) obj));
+        private bool Equals(Value other) => Equals(_value, other._value);
+        public override bool Equals(object obj) => !ReferenceEquals(null, obj) && (obj is Value && Equals((Value) obj));
         public override int GetHashCode() => _value?.GetHashCode() ?? 0;
         public static bool operator ==(Value left, Value right) => left.Equals(right);
         public static bool operator !=(Value left, Value right) => !(left == right);

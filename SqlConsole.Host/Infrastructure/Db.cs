@@ -19,7 +19,7 @@ using Microsoft.CSharp.RuntimeBinder;
 // from there it should be discoverable.
 // inline SQL FTW!
 
-namespace SqlConsole.Host
+namespace Net.Code.ADONet
 {
  
    public interface IConnectionFactory

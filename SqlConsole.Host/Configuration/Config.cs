@@ -62,11 +62,11 @@ namespace SqlConsole.Host
             var commandLine = new CommandLine();
             var connectionString = new ConnectionString();
 
-            Action<CommandLineParam, string> setCommandLineValue = (cl, s) => commandLine[cl] = Value.From(s);
+            Action<CommandLineParam, string> setCommandLineValue = (cl, s) => commandLine[cl] = Value.From(s.Trim('"'));
 
             Func<string, string, bool> onUnknownOption = (name, value) =>
             {
-                connectionString[new ConnectionStringParam(name)] = Value.From(value);
+                connectionString[new ConnectionStringParam(name.Trim('"'))] = Value.From(value.Trim('"'));
                 return true;
             };
 

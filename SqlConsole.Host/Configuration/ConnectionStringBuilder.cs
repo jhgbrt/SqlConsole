@@ -87,24 +87,27 @@ namespace SqlConsole.Host
             {PostGreSQL, password, Password},
             {PostGreSQL, integratedsecurity, IntegratedSecurity},
             {SqlCompact, file, DataSource},
-            {SqlCompact, file, Password},
+            {SqlCompact, password, Password},
             {SqLite, file, DataSource},
             {SqLite, password, Password}
         }.ToLookup(p => p.Provider);
 
         private static readonly RuleList Rules = new RuleList
         {
-            {ServerIsRequired, Sqlserver, Oracle, MySql},
+            {ServerIsRequired, Default, Oracle, MySql, PostGreSQL},
+            {ServerOrFileIsRequired, Sqlserver},
+            {DatabaseIsRequired, Default, Sqlserver, Oracle, MySql, PostGreSQL},
             {SetIntegratedSecurityIfNoUser, Sqlserver, Oracle, MySql, Default},
             {AttachPortToServer, IbmDB2}
         };
 
         private static bool ServerIsRequired(CommandLine commandLine) => commandLine.Server.HasValue;
+        private static bool ServerOrFileIsRequired(CommandLine commandLine) => commandLine.Server.HasValue || commandLine.File.HasValue;
+        private static bool DatabaseIsRequired(CommandLine commandLine) => commandLine.Database.HasValue;
         private static bool SetIntegratedSecurityIfNoUser(CommandLine commandLine)
         {
-            if (!commandLine.User.HasValue && !commandLine.IntegratedSecurity.HasValue)
+            if (commandLine.Any() && !commandLine.User.HasValue && !commandLine.IntegratedSecurity.HasValue)
             {
-                Console.WriteLine("Using Integrated Security");
                 commandLine.IntegratedSecurity = Value.From("True");
             }
             return true;
