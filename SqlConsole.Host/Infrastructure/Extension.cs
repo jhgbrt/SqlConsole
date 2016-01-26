@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Text;
+using System.Text.RegularExpressions;
 using Subtext.Scripting;
 
 namespace SqlConsole.Host
 {
-    static class Extension
+    public static class Extension
     {
         // argument list is used for type inference
         // ReSharper disable once UnusedParameter.Local
@@ -15,42 +15,30 @@ namespace SqlConsole.Host
         {
             return new LambdaComparer<T>(f);
         }
+
+        private static string RegexReplace(this string input, string pattern, string replace)
+        {
+            return Regex.Replace(input, pattern, replace);
+        }
+        private static string RegexReplace(this string input, string pattern, MatchEvaluator evaluator)
+        {
+            return Regex.Replace(input, pattern, evaluator);
+        }
         public static string BookTitleToSentence(this string s)
         {
-            var sb = new StringBuilder();
-            sb.Append(s[0]);
-            for  (var i = 1; i < s.Length; i++)
-            {
-                var c = s[i];
-                if (char.IsUpper(c))
-                {
-                    sb.Append(" ");
-                    sb.Append(char.ToLowerInvariant(c));
-                }
-                else
-                {
-                    sb.Append(c);
-                }
-            }
-            return sb.ToString();
-        } 
+            if (s == null) throw new ArgumentNullException(nameof(s));
+            
+            var result = s
+                .RegexReplace(@"(\P{Ll})(\P{Ll}\p{Ll})", "$1 $2")               // ABc => A Bc, 1Bc => 1 Bc
+                .RegexReplace(@"(\p{Ll})(\P{Ll})", "$1 $2")                     // aB  => a B , a1  => a 1
+                .RegexReplace(@"( )(\p{Lu})(\p{Ll})", m => m.Value.ToLower());  // ' Aa' => ' aa'
 
-        public static IEnumerable<string> Words(this string s)
+            return result;
+        }
+
+        public static string FirstWord(this string s)
         {
-            var sb = new StringBuilder();
-            foreach (var c in s)
-            {
-                if (char.IsLetterOrDigit(c))
-                    sb.Append(c);
-                else
-                {
-                    yield return sb.ToString();
-                    sb.Clear();
-                }
-            }
-            if (sb.Length > 0)
-                yield return sb.ToString();
-            sb.Clear();
+            return new string(s.TakeWhile(char.IsLetterOrDigit).ToArray());
         } 
 
         // needed instead of anonymous types b/c MaxLength field needs to be mutable

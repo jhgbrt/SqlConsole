@@ -6,7 +6,19 @@ namespace SqlConsole.Host
     {
         static void Main(string[] args)
         {
-            var config = Config.Create(args);
+            Config config;
+            try
+            {
+                config = Config.Create(args);
+            }
+            catch (ConnectionConfigException re)
+            {
+                var fg = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(re.Message);
+                Console.ForegroundColor = fg;
+                return;
+            }
             if (config.Help)
             {
                 PrintUsage(config);

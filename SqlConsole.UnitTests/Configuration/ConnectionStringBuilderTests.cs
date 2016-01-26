@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
@@ -11,7 +10,7 @@ namespace SqlConsole.UnitTests.Configuration
     public class ConnectionStringBuilderTests
     {
         [TestMethod]
-        [ExpectedException(typeof(Exception))]
+        [ExpectedException(typeof(ConnectionConfigException))]
         public void DefaultProvider_EmptyCommandLine_Throws()
         {
             var provider = Provider.Default;
@@ -20,7 +19,7 @@ namespace SqlConsole.UnitTests.Configuration
             var result = ConnectionStringBuilder.GetConnectionString(provider, commandLine, connectionString);
         }
         [TestMethod]
-        [ExpectedException(typeof(Exception))]
+        [ExpectedException(typeof(ConnectionConfigException))]
         public void DefaultProvider_invalidCommandLine_Throws()
         {
             var provider = Provider.Default;

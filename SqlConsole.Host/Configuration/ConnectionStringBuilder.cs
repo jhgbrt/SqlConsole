@@ -8,6 +8,11 @@ using static SqlConsole.Host.Provider;
 
 namespace SqlConsole.Host
 {
+    internal class ConnectionConfigException : Exception
+    {
+        public ConnectionConfigException(string message):base(message) {}
+        
+    }
     internal static class ConnectionStringBuilder
     {
         public static string GetConnectionString(
@@ -19,17 +24,13 @@ namespace SqlConsole.Host
             var errors = (
                 from rule in Rules[provider]
                 where !rule.Apply(commandLine)
-                let parameterStr = string.Join(";", commandLine.Select(kv => $"{kv.Key}={kv.Value}"))
-                select "Error while mapping parameter values to connection string " +
-                    $"for provider '{provider}'. " +
-                    $"Parameters: '{parameterStr}', " +
-                    $"error: {rule.Description}"
+                select rule.Description
                 ).ToList();
 
             if (errors.Any())
             {
                 var message = string.Join(Environment.NewLine, errors);
-                throw new Exception(message);
+                throw new ConnectionConfigException(message);
             }
 
             var csb = new DbConnectionStringBuilder();
