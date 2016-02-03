@@ -1,23 +1,23 @@
-using System;
 using System.IO;
 
 namespace SqlConsole.Host
 {
-    class NonQueryResultWriter<T> : IResultProcessor<T>
+    class NonQueryResultWriter : IResultProcessor<int>
     {
-        private readonly TextWriter _textWriter = Console.Out;
+        private readonly TextWriter _textWriter;
 
-        public void Process(T result)
+        public NonQueryResultWriter(TextWriter textWriter)
         {
-            if (!(result is int)) throw new InvalidOperationException("NonQuery result writer can only process integer results");
-            var r = (int)(object)result;
+            _textWriter = textWriter;
+        }
+
+        public void Process(int result)
+        {
+            var r = result;
             if (r < 0) return;
             var s = r == 1 ? "" : "s";
             _textWriter.WriteLine($"{result} row{s} affected");
         }
     }
 
-    class NonQueryResultWriter : NonQueryResultWriter<int>
-    {
-    }
 }

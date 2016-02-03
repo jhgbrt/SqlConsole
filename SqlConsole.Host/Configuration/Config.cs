@@ -34,6 +34,8 @@ namespace SqlConsole.Host
 
         public bool NonQuery { get; }
 
+        public bool OutputToFile => !string.IsNullOrEmpty(Output) && !string.IsNullOrEmpty(Query);
+
         class MyOptionSet : OptionSet
         {
             public MyOptionSet(

@@ -1,6 +1,8 @@
+using System;
+
 namespace SqlConsole.Host
 {
-    interface IQueryHandler
+    interface IQueryHandler : IDisposable
     {
         void Execute(string query);
     }

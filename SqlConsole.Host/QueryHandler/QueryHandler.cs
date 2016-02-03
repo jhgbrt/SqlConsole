@@ -1,45 +1,42 @@
 using System;
-using System.Data.Common;
+using System.IO;
 using Net.Code.ADONet;
 
 namespace SqlConsole.Host
 {
 
+
+
     class QueryHandler<TQueryResult> : IQueryHandler
     {
-        private readonly Config _config;
-        readonly Func<IDb, string, TQueryResult> _runQuery;
+        private readonly Func<CommandBuilder, TQueryResult> _do;
         private readonly IResultProcessor<TQueryResult> _resultProcessor;
+        private readonly IDb _db;
+        private readonly TextWriter _writer;
 
-        public QueryHandler(
-            Config config, 
-            Func<IDb, string, TQueryResult> runQuery, 
-            IResultProcessor<TQueryResult> resultProcessor)
+        public QueryHandler(IDb db, TextWriter writer, Func<CommandBuilder, TQueryResult> @do, IResultProcessor<TQueryResult> resultProcessor)
         {
-            _config = config;
-            _runQuery = runQuery;
+            _db = db;
+            _writer = writer;
             _resultProcessor = resultProcessor;
+            _do = @do;
         }
 
         public void Execute(string query)
         {
-            try
+            foreach (var script in query.SplitOnGo())
             {
-                var providerName = _config.ProviderName;
-                using (var db = new Db(_config.ConnectionString, providerName))
-                {
-                    foreach (var script in query.SplitOnGo())
-                    {
-                        var result = _runQuery(db, script);
-                        _resultProcessor.Process(result);
-                    }
-                }
+                var cb = _db.Sql(script);
+                var result = _do(cb);
+                _resultProcessor.Process(result);
             }
-            catch (DbException e)
-            {
-                Console.WriteLine(e.Message);
-            }
+        }
 
+        public void Dispose()
+        {
+            _db.Dispose();
+            _writer.Dispose();
         }
     }
 }
+

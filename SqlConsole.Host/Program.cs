@@ -2,6 +2,7 @@
 
 namespace SqlConsole.Host
 {
+
     static class Program
     {
         static void Main(string[] args)
@@ -12,17 +13,21 @@ namespace SqlConsole.Host
                 PrintUsage(config);
                 return;
             }
+
+
             try
             {
-                if (!string.IsNullOrEmpty(config.Query))
+                using (var queryHandler = new QueryHandlerFactory(config).Create())
                 {
-                    QueryHandlerFactory.Create(config).Execute(config.Query);
+                    if (!string.IsNullOrEmpty(config.Query))
+                    {
+                        queryHandler.Execute(config.Query);
+                    }
+                    else
+                    {
+                        new Repl(queryHandler).Enter();
+                    }
                 }
-                else
-                {
-                    new Repl(config).Enter();
-                }
-
             }
             catch (Exception e)
             {
