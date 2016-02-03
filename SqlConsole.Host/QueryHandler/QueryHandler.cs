@@ -10,16 +10,16 @@ namespace SqlConsole.Host
     class QueryHandler<TQueryResult> : IQueryHandler
     {
         private readonly Func<CommandBuilder, TQueryResult> _do;
-        private readonly IResultProcessor<TQueryResult> _resultProcessor;
+        private readonly ITextFormatter<TQueryResult> _formatter;
         private readonly IDb _db;
         private readonly TextWriter _writer;
 
-        public QueryHandler(IDb db, TextWriter writer, Func<CommandBuilder, TQueryResult> @do, IResultProcessor<TQueryResult> resultProcessor)
+        public QueryHandler(IDb db, TextWriter writer, Func<CommandBuilder, TQueryResult> @do, ITextFormatter<TQueryResult> formatter)
         {
             _db = db;
             _writer = writer;
-            _resultProcessor = resultProcessor;
             _do = @do;
+            _formatter = formatter;
         }
 
         public void Execute(string query)
@@ -28,7 +28,11 @@ namespace SqlConsole.Host
             {
                 var cb = _db.Sql(script);
                 var result = _do(cb);
-                _resultProcessor.Process(result);
+                foreach (var s in _formatter.Format(result))
+                {
+                    _writer.WriteLine(s);
+                    _writer.Flush();
+                }
             }
         }
 

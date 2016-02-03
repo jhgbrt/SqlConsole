@@ -24,19 +24,19 @@ namespace SqlConsole.Host
 
             if (_config.Scalar)
             {
-                return new QueryHandler<object>(db, writer, cb => cb.AsScalar(), new ScalarResultWriter(writer));
+                return new QueryHandler<object>(db, writer, cb => cb.AsScalar(), new ScalarFormatter());
             }
 
             if (_config.NonQuery)
             {
-                return new QueryHandler<int>(db, writer, cb => cb.AsNonQuery(), new NonQueryResultWriter(writer));
+                return new QueryHandler<int>(db, writer, cb => cb.AsNonQuery(), new NonQueryFormatter());
             }
 
             var formatter = _config.OutputToFile
                 ? (ITextFormatter<DataTable>) new CsvFormatter()
                 : new ConsoleTableFormatter(GetWindowWidth(), " | ");
 
-            return new QueryHandler<DataTable>(db, writer, cb => cb.AsDataTable(), new DataTableWriter(writer, formatter));
+            return new QueryHandler<DataTable>(db, writer, cb => cb.AsDataTable(), formatter);
         }
         private static int GetWindowWidth()
         {
@@ -49,6 +49,7 @@ namespace SqlConsole.Host
         {
             foreach (var f in functions)
             {
+                // ReSharper disable once EmptyGeneralCatchClause
                 try { return f(); } catch { }
             }
             return null;
