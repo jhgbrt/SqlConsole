@@ -21,17 +21,6 @@ using Microsoft.CSharp.RuntimeBinder;
 
 namespace Net.Code.ADONet
 {
- 
-   public interface IConnectionFactory
-    {
-        /// <summary>
-        /// Create the ADO.Net IDbConnection
-        /// </summary>
-        /// <param name="connectionString"></param>
-        /// <returns>the connection</returns>
-        IDbConnection CreateConnection(string connectionString);
-    }
-
     public interface IDb : IDisposable
     {
         void Connect();
@@ -40,7 +29,14 @@ namespace Net.Code.ADONet
         /// </summary>
         IDbConnection Connection { get; }
 
+        /// <summary>
+        /// The ADO.Net connection string
+        /// </summary>
         string ConnectionString { get; }
+
+        /// <summary>
+        /// The ADO.Net ProviderName for this connection
+        /// </summary>
         string ProviderName { get; }
 
         /// <summary>
@@ -48,6 +44,9 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <returns></returns>
         
+        /// <summary>
+        /// Extension point for custom configuration of the db connection
+        /// </summary>
         IDbConfigurationBuilder Configure();
 
         /// <summary>
@@ -87,6 +86,16 @@ namespace Net.Code.ADONet
                 Log(String.Format("{0} = {1}", p.ParameterName, p.Value));
             }
         }
+    }
+
+    public interface IConnectionFactory
+    {
+        /// <summary>
+        /// Create the ADO.Net IDbConnection
+        /// </summary>
+        /// <param name="connectionString"></param>
+        /// <returns>the connection</returns>
+        IDbConnection CreateConnection(string connectionString);
     }
 
     public interface IDbConfigurationBuilder
@@ -146,10 +155,7 @@ namespace Net.Code.ADONet
                                  }
                                  catch (RuntimeBinderException)
                                  {
-                                     var message =
-                                         String.Format(
-                                             "Exception while trying to set the BindByName property on {0} to 'true'. This used to be required for Oracle DataAccess. To avoid this exception, configure your Db instance differently, using the db.Configure() API.",
-                                             command.GetType());
+                                     var message = string.Format("Exception while trying to set the BindByName property on {0} to 'true'. This used to be required for Oracle DataAccess. To avoid this exception, configure your Db instance differently, using the db.Configure() API.", command.GetType());
                                      throw new InvalidOperationException(message);
                                  }
                              });
@@ -208,7 +214,7 @@ namespace Net.Code.ADONet
     }
 
     /// <summary>
-    /// A class that wraps a Database.
+    /// A class that wraps a database.
     /// </summary>
     public class Db : IDb
     {
@@ -227,7 +233,7 @@ namespace Net.Code.ADONet
         }
 
         /// <summary>
-        /// The default DbProvider name is "System.Data.SqlClient" (for sql Server).
+        /// The default DbProvider name is "System.Data.SqlClient" (for sql server).
         /// </summary>
         public static string DefaultProviderName = "System.Data.SqlClient";
 
@@ -857,7 +863,7 @@ namespace Net.Code.ADONet
                 return ByMemberName(out result, memberName);
             }
 
-            public override sealed bool TryGetMember(GetMemberBinder binder, out object result)
+            public sealed override bool TryGetMember(GetMemberBinder binder, out object result)
             {
                 var memberName = binder.Name;
                 return ByMemberName(out result, memberName);
@@ -899,7 +905,7 @@ namespace Net.Code.ADONet
         /// using standard C# syntax.
         /// </summary>
         /// <param name="rdr">the data record</param>
-        /// <returns>A dynamic object with fields corresponding to the Database columns</returns>
+        /// <returns>A dynamic object with fields corresponding to the database columns</returns>
         public static dynamic ToExpando(this IDataRecord rdr)
         {
             var d = new Dictionary<string,object>();

@@ -128,11 +128,10 @@ namespace SqlConsole.Host
             else
             {
                 var settings = ConnectionStrings["Default"];
-                if (settings != null)
-                {
-                    ConnectionString = settings.ConnectionString;
-                    _provider = new Provider(settings.ProviderName);
-                }
+                if (settings == null) 
+                    throw new ConnectionConfigException("No connection configuration found. Either provide command line parameters, or add a .config file with a connection string named 'Default'");
+                ConnectionString = settings.ConnectionString;
+                _provider = new Provider(settings.ProviderName);
             }
         }
     }

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Data.Common;
 using System.IO;
-using System.Linq;
 using System.Text;
 
 namespace SqlConsole.Host
@@ -26,7 +25,7 @@ namespace SqlConsole.Host
                 if (string.IsNullOrEmpty(query))
                     continue;
 
-                var firstWord = query.Words().First().ToLowerInvariant();
+                var firstWord = query.FirstWord().ToLowerInvariant();
 
                 switch (firstWord)
                 {

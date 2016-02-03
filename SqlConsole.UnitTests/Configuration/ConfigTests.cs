@@ -8,63 +8,34 @@ namespace SqlConsole.UnitTests.Configuration
     public class ConfigTests
     {
         [TestMethod]
-        public void WhenNoArguments_ThenProviderNameIsDefault()
+        [ExpectedException(typeof(ConnectionConfigException))]
+        public void WhenNoArguments_ThenThrows()
         {
             var config = Config.Create(new string[] { });
             Assert.AreEqual(Provider.Default.Name, config.ProviderName);
         }
         [TestMethod]
-        public void WhenNoArguments_ThenHelpIsFalse()
-        {
-            var config = Config.Create(new string[] { });
-            Assert.IsFalse(config.Help);
-        }
-        [TestMethod]
-        public void WhenNoArguments_ThenNonQueryIsFalse()
-        {
-            var config = Config.Create(new string[] { });
-            Assert.IsFalse(config.NonQuery);
-        }
-        [TestMethod]
-        public void WhenNoArguments_ThenScalarIsFalse()
-        {
-            var config = Config.Create(new string[] { });
-            Assert.IsFalse(config.Scalar);
-        }
-        [TestMethod]
-        public void WhenNoArguments_ThenOutputFileIsNull()
-        {
-            var config = Config.Create(new string[] { });
-            Assert.IsNull(config.Output);
-        }
-        [TestMethod]
-        public void WhenNoArguments_AndNoConfig_ThenConnectionStringIsNull()
-        {
-            var config = Config.Create(new string[] { });
-            Assert.IsNull(config.ConnectionString);
-        }
-        [TestMethod]
         public void WhenArgContainsHelp_HelpIsTrue()
         {
-            var config = Config.Create(new[] { "--help" });
+            var config = Config.Create(new[] { "--server=server", "--database=database", "--help" });
             Assert.IsTrue(config.Help);
         }
         [TestMethod]
         public void WhenArgContainsScalar_ThenScalarIsTrue()
         {
-            var config = Config.Create(new[] { "--scalar" });
+            var config = Config.Create(new[] { "--server=server", "--database=database", "--scalar" });
             Assert.IsTrue(config.Scalar);
         }
         [TestMethod]
         public void WhenArgContainsScalar_ThenNonQueryIsTrue()
         {
-            var config = Config.Create(new[] { "--nonquery" });
+            var config = Config.Create(new[] { "--server=server", "--database=database", "--nonquery" });
             Assert.IsTrue(config.NonQuery);
         }
         [TestMethod]
         public void WhenArgContainsOutput_ThenOutputIsSet()
         {
-            var config = Config.Create(new[] { "--output=output.csv" });
+            var config = Config.Create(new[] { "--server=server", "--database=database", "--output=output.csv" });
             Assert.AreEqual("output.csv", config.Output);
         }
         [TestMethod]

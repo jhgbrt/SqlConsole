@@ -58,6 +58,7 @@
     <Compile Include="Configuration\ConnectionStringBuilderTests.cs" />
     <Compile Include="Configuration\CommandLineParamTests.cs" />
     <Compile Include="Configuration\ValueTests.cs" />
+    <Compile Include="Infrastructure\ExtensionsTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Visualizers\CsvFormatterTests.cs" />
   </ItemGroup>
