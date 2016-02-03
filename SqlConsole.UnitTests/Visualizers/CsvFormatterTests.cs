@@ -87,9 +87,9 @@ namespace SqlConsole.UnitTests.Visualizers
             var formatter = new ConsoleTableFormatter(20, " | ");
             var result = string.Join(Environment.NewLine, formatter.Format(dataTable));
 
-            var expected = "Id | FirstNa | Last\r\n" +
-                           "---|---------|-----\r\n" +
-                           "1  | John    | Doe ";
+            var expected = "Id | FirstName | La\r\n" +
+                           "---|-----------|---\r\n" +
+                           "1  | John      | Do";
 
             Assert.AreEqual(expected, result);
         }
