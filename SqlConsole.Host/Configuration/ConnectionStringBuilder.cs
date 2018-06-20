@@ -4,7 +4,6 @@ using System.Data.Common;
 using System.Linq;
 using static SqlConsole.Host.CommandLineParam;
 using static SqlConsole.Host.ConnectionStringParam;
-using static SqlConsole.Host.Provider;
 
 namespace SqlConsole.Host
 {
@@ -54,52 +53,52 @@ namespace SqlConsole.Host
 
         private static readonly ILookup<Provider,Parameter> ParameterMappings = new ParameterList
         {
-            {Default, server, DataSource},
-            {Default, database, InitialCatalog},
-            {Default, user, UserId},
-            {Default, integratedsecurity, IntegratedSecurity},
-            {Default, password, Password},
-            {Sqlserver, server, DataSource},
-            {Sqlserver, database, InitialCatalog},
-            {Sqlserver, user, UserId},
-            {Sqlserver, password, Password},
-            {Sqlserver, integratedsecurity, IntegratedSecurity},
-            {Sqlserver, file, Attachdbfilename},
-            {Oracle, server, DataSource},
-            {Oracle, database, InitialCatalog},
-            {Oracle, user, UserId},
-            {Oracle, password, Password},
-            {Oracle, integratedsecurity, IntegratedSecurity},
-            {IbmDB2, server, Server},
-            {IbmDB2, port, Port},
-            {IbmDB2, database, Database},
-            {IbmDB2, user, Uid},
-            {IbmDB2, password, Pwd},
+            {Provider.Default, server, DataSource},
+            {Provider.Default, database, InitialCatalog},
+            {Provider.Default, user, UserId},
+            {Provider.Default, integratedsecurity, IntegratedSecurity},
+            {Provider.Default, password, Password},
+            {Provider.Sqlserver, server, DataSource},
+            {Provider.Sqlserver, database, InitialCatalog},
+            {Provider.Sqlserver, user, UserId},
+            {Provider.Sqlserver, password, Password},
+            {Provider.Sqlserver, integratedsecurity, IntegratedSecurity},
+            {Provider.Sqlserver, file, Attachdbfilename},
+            {Provider.Oracle, server, DataSource},
+            {Provider.Oracle, database, InitialCatalog},
+            {Provider.Oracle, user, UserId},
+            {Provider.Oracle, password, Password},
+            {Provider.Oracle, integratedsecurity, IntegratedSecurity},
+            {Provider.IbmDB2, server, Server},
+            {Provider.IbmDB2, port, Port},
+            {Provider.IbmDB2, database, Database},
+            {Provider.IbmDB2, user, Uid},
+            {Provider.IbmDB2, password, Pwd},
             {Provider.MySql, server, Server},
             {Provider.MySql, port, Port},
             {Provider.MySql, database, Database},
             {Provider.MySql, user, Uid},
             {Provider.MySql, password, Pwd},
             {Provider.MySql, integratedsecurity, IntegratedSecurity},
-            {PostGreSQL, port, Port},
-            {PostGreSQL, server, Server},
-            {PostGreSQL, database, Database},
-            {PostGreSQL, user, UserId},
-            {PostGreSQL, password, Password},
-            {PostGreSQL, integratedsecurity, IntegratedSecurity},
-            {SqlCompact, file, DataSource},
-            {SqlCompact, password, Password},
-            {SqLite, file, DataSource},
-            {SqLite, password, Password}
+            {Provider.PostGreSQL, port, Port},
+            {Provider.PostGreSQL, server, Server},
+            {Provider.PostGreSQL, database, Database},
+            {Provider.PostGreSQL, user, UserId},
+            {Provider.PostGreSQL, password, Password},
+            {Provider.PostGreSQL, integratedsecurity, IntegratedSecurity},
+            {Provider.SqlCompact, file, DataSource},
+            {Provider.SqlCompact, password, Password},
+            {Provider.SqLite, file, DataSource},
+            {Provider.SqLite, password, Password}
         }.ToLookup(p => p.Provider);
 
         private static readonly RuleList Rules = new RuleList
         {
-            {ServerIsRequired, Default, Oracle, Provider.MySql, PostGreSQL},
-            {ServerOrFileIsRequired, Sqlserver},
-            {DatabaseIsRequired, Default, Sqlserver, Oracle,Provider.MySql, PostGreSQL},
-            {SetIntegratedSecurityIfNoUser, Sqlserver, Oracle, Provider.MySql, Default},
-            {AttachPortToServer, IbmDB2}
+            {ServerIsRequired, Provider.Default, Provider.Oracle, Provider.MySql, Provider.PostGreSQL},
+            {ServerOrFileIsRequired, Provider.Sqlserver},
+            {DatabaseIsRequired, Provider.Default, Provider.Sqlserver, Provider.Oracle,Provider.MySql, Provider.PostGreSQL},
+            {SetIntegratedSecurityIfNoUser, Provider.Sqlserver, Provider.Oracle, Provider.MySql, Provider.Default},
+            {AttachPortToServer, Provider.IbmDB2}
         };
 
         private static bool ServerIsRequired(CommandLine commandLine) => commandLine.Server.HasValue;
