@@ -75,12 +75,12 @@ namespace SqlConsole.Host
             {IbmDB2, database, Database},
             {IbmDB2, user, Uid},
             {IbmDB2, password, Pwd},
-            {MySql, server, Server},
-            {MySql, port, Port},
-            {MySql, database, Database},
-            {MySql, user, Uid},
-            {MySql, password, Pwd},
-            {MySql, integratedsecurity, IntegratedSecurity},
+            {Provider.MySql, server, Server},
+            {Provider.MySql, port, Port},
+            {Provider.MySql, database, Database},
+            {Provider.MySql, user, Uid},
+            {Provider.MySql, password, Pwd},
+            {Provider.MySql, integratedsecurity, IntegratedSecurity},
             {PostGreSQL, port, Port},
             {PostGreSQL, server, Server},
             {PostGreSQL, database, Database},
@@ -95,10 +95,10 @@ namespace SqlConsole.Host
 
         private static readonly RuleList Rules = new RuleList
         {
-            {ServerIsRequired, Default, Oracle, MySql, PostGreSQL},
+            {ServerIsRequired, Default, Oracle, Provider.MySql, PostGreSQL},
             {ServerOrFileIsRequired, Sqlserver},
-            {DatabaseIsRequired, Default, Sqlserver, Oracle, MySql, PostGreSQL},
-            {SetIntegratedSecurityIfNoUser, Sqlserver, Oracle, MySql, Default},
+            {DatabaseIsRequired, Default, Sqlserver, Oracle,Provider.MySql, PostGreSQL},
+            {SetIntegratedSecurityIfNoUser, Sqlserver, Oracle, Provider.MySql, Default},
             {AttachPortToServer, IbmDB2}
         };
 

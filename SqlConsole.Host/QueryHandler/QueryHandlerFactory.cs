@@ -21,7 +21,7 @@ namespace SqlConsole.Host
             var writer = _config.OutputToFile ? new StreamWriter(_config.Output) : Console.Out;
 
             var db = new Db(_config.ConnectionString, _config.ProviderName);
-
+            db.Connect();
             if (_config.Scalar)
             {
                 return new QueryHandler<object>(db, writer, cb => cb.AsScalar(), new ScalarFormatter());
