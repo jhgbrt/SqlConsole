@@ -1,16 +1,15 @@
 using System;
 using System.Data;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using Net.Code.ADONet;
 using SqlConsole.Host;
 
 namespace SqlConsole.UnitTests.Visualizers
 {
-    [TestClass]
     public class ConsoleTableFormatterTests
     {
-        [TestMethod]
+        [Fact]
         public void Format_WhenWindowWidthIsWideEnough()
         {
             var dataTable = new[]
@@ -25,9 +24,9 @@ namespace SqlConsole.UnitTests.Visualizers
                            "---|-----------|---------\r\n" +
                            "1  | John      | Doe     ";
 
-            Assert.AreEqual(expected, result);
+            Assert.Equal(expected, result);
         }
-        [TestMethod]
+        [Fact]
         public void Format_WhenWindowWidthIsNotWideEnough()
         {
             var dataTable = new[]
@@ -42,9 +41,9 @@ namespace SqlConsole.UnitTests.Visualizers
                            "---|-----------|---\r\n" +
                            "1  | John      | Do";
 
-            Assert.AreEqual(expected, result);
+            Assert.Equal(expected, result);
         }
-        [TestMethod]
+        [Fact]
         public void EmptyDataTable_YieldsEmpty()
         {
             var dataTable = new DataTable();
@@ -55,10 +54,10 @@ namespace SqlConsole.UnitTests.Visualizers
 
             var expected = "";
 
-            Assert.AreEqual(expected, result);
+            Assert.Equal(expected, result);
         }
 
-        [TestMethod]
+        [Fact]
         public void SingleResult_YieldsThatResult()
         {
             var dataTable = new DataTable();
@@ -68,7 +67,7 @@ namespace SqlConsole.UnitTests.Visualizers
             var formatter = new ConsoleTableFormatter(120, " | ");
 
             var result = formatter.Format(dataTable).ToList();
-            Assert.AreEqual("Some Value", result.Single());
+            Assert.Equal("Some Value", result.Single());
         }
     }
 }

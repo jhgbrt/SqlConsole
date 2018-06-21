@@ -1,6 +1,6 @@
 ﻿using System.Data;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using Net.Code.ADONet;
 using SqlConsole.Host;
 
@@ -12,10 +12,9 @@ namespace SqlConsole.UnitTests.Visualizers
         public string FirstName { get; set; }
         public string LastName { get; set; }
     }
-    [TestClass]
     public class CsvFormatterTests
     {
-        [TestMethod]
+        [Fact]
         public void Format_CreatesCsv()
         {
             var dataTable = new[]
@@ -26,9 +25,9 @@ namespace SqlConsole.UnitTests.Visualizers
             var formatter = new CsvFormatter();
             var result = formatter.Format(dataTable).ToList();
 
-            CollectionAssert.AreEqual(new[] { "\"Id\";\"FirstName\";\"LastName\"", "\"1\";\"John\";\"Doe\"" }, result);
+            Assert.Equal(new[] { "\"Id\";\"FirstName\";\"LastName\"", "\"1\";\"John\";\"Doe\"" }, result);
         }
-        [TestMethod]
+        [Fact]
         public void EmptyDataTable_YieldsEmpty()
         {
             var dataTable = new DataTable();
@@ -36,10 +35,10 @@ namespace SqlConsole.UnitTests.Visualizers
             var formatter = new CsvFormatter();
             var result = formatter.Format(dataTable).ToList();
 
-            CollectionAssert.AreEqual(new string[] { "" }, result);
+            Assert.Equal(new string[] { "" }, result);
         }
 
-        [TestMethod]
+        [Fact]
         public void SingleResult_YieldsThatResult()
         {
             var dataTable = new DataTable();
@@ -48,7 +47,7 @@ namespace SqlConsole.UnitTests.Visualizers
 
             var formatter = new CsvFormatter();
             var result = formatter.Format(dataTable).ToList();
-            Assert.AreEqual("Some Value", result.Single());
+            Assert.Equal("Some Value", result.Single());
         }
     }
 }

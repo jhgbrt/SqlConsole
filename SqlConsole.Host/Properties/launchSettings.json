@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "SqlConsole.Host": {
+      "commandName": "Project"
+    }
+  }
+}

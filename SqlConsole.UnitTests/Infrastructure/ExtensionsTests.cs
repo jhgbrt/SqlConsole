@@ -1,54 +1,55 @@
 ﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using SqlConsole.Host;
 
 namespace SqlConsole.UnitTests.Infrastructure
 {
-    [TestClass]
     public class ExtensionsTests
     {
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentNullException))]
+        [Fact]
         public void BookTitleToSentenceTests_InputNull_Throws()
         {
-            string s = null;
-            s.BookTitleToSentence();
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                string s = null;
+                s.BookTitleToSentence();
+            });
         }
-        [TestMethod]
+        [Fact]
         public void BookTitleToSentenceTests_EmptyString()
         {
             string s = string.Empty;
             var result = s.BookTitleToSentence();
-            Assert.AreEqual(string.Empty, result);
+            Assert.Equal(string.Empty, result);
         }
 
-        [TestMethod]
+        [Fact]
         public void BookTitleToSentenceTests_OneWord_Lowercase_Remains()
         {
             string s = "hello";
             var result = s.BookTitleToSentence();
-            Assert.AreEqual("hello", result);
+            Assert.Equal("hello", result);
         }
-        [TestMethod]
+        [Fact]
         public void BookTitleToSentenceTests_OneWord_Uppercase_Remains()
         {
             string s = "Hello";
             var result = s.BookTitleToSentence();
-            Assert.AreEqual("Hello", result);
+            Assert.Equal("Hello", result);
         }
-        [TestMethod]
+        [Fact]
         public void BookTitleToSentenceTests_SomeWords_Split()
         {
             string s = "HelloWorld";
             var result = s.BookTitleToSentence();
-            Assert.AreEqual("Hello world", result);
+            Assert.Equal("Hello world", result);
         }
-        [TestMethod]
+        [Fact]
         public void BookTitleToSentenceTests_SomeWordsWithAcrony_AcronymIsKept()
         {
             string s = "HelloABC123World";
             var result = s.BookTitleToSentence();
-            Assert.AreEqual("Hello ABC123 world", result);
+            Assert.Equal("Hello ABC123 world", result);
         }
     }
 }

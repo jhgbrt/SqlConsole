@@ -19,8 +19,7 @@ namespace SqlConsole.Host
 
         public void Enter()
         {
-            var source = new QueryReader(_textReader);
-            foreach (var query in source.ReadQueries())
+            foreach (var query in ReadQueries())
             {
                 if (string.IsNullOrEmpty(query))
                     continue;
@@ -45,18 +44,8 @@ namespace SqlConsole.Host
                 }
             }
         }
-    }
 
-    public class QueryReader
-    {
-        private readonly TextReader _textReader;
-
-        public QueryReader(TextReader textReader)
-        {
-            _textReader = textReader;
-        }
-
-        public IEnumerable<string> ReadQueries()
+        IEnumerable<string> ReadQueries()
         {
             while (true)
             {
@@ -65,7 +54,7 @@ namespace SqlConsole.Host
             }
         }
 
-        private string ReadQuery()
+        string ReadQuery()
         {
             var sb = new StringBuilder();
             var readLine = _textReader.ReadLine();
@@ -73,29 +62,19 @@ namespace SqlConsole.Host
             {
                 if (string.IsNullOrWhiteSpace(readLine))
                     break;
-
-                if (readLine.EndsWith(";"))
-                {
-                    sb.AppendLine(readLine);
-                    break;
-                }
-
                 if (readLine == "GO")
-                {
                     break;
-                }
-
                 if (readLine == "/")
-                {
                     break;
-                }
 
                 sb.AppendLine(readLine);
+
+                if (readLine.EndsWith(";"))
+                    break;
 
                 readLine = _textReader.ReadLine();
             }
             return sb.ToString();
         }
     }
-
 }

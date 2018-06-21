@@ -17,6 +17,8 @@ namespace SqlConsole.Host
 
         public Value? User => TryGet(CommandLineParam.user);
 
+        public Value? ConnectionString => TryGet(CommandLineParam.connectionString);
+
         public Value? IntegratedSecurity
         {
             get { return TryGet(CommandLineParam.integratedsecurity); }

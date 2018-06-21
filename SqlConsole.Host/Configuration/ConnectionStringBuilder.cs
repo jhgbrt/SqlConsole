@@ -34,6 +34,11 @@ namespace SqlConsole.Host
 
             var csb = new DbConnectionStringBuilder();
 
+            if (commandLine.ConnectionString.HasValue)
+            {
+                return commandLine.ConnectionString.Value.Get();
+            }
+
             var commandLineToConnectionString = CommandLineToConnectionString(provider);
 
             foreach (var p in commandLine)

@@ -1,25 +1,25 @@
 ﻿using System;
+using System.Data.Common;
 
 namespace SqlConsole.Host
 {
-
     static class Program
     {
         static void Main(string[] args)
         {
+
             Config config;
+
             try
             {
                 config = Config.Create(args);
             }
             catch (ConnectionConfigException re)
             {
-                var fg = Console.ForegroundColor;
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(re.Message);
-                Console.ForegroundColor = fg;
+                WriteLine(re.Message, ConsoleColor.Red);
                 return;
             }
+
             if (config.Help)
             {
                 PrintUsage(config);
@@ -29,6 +29,9 @@ namespace SqlConsole.Host
 
             try
             {
+                var csb = new DbConnectionStringBuilder {ConnectionString = config.ConnectionString}.WithoutSensitiveInformation();
+                Console.WriteLine(csb.ConnectionString);
+
                 using (var queryHandler = new QueryHandlerFactory(config).Create())
                 {
                     if (!string.IsNullOrEmpty(config.Query))
@@ -46,6 +49,28 @@ namespace SqlConsole.Host
                 Console.WriteLine(e);
                 Console.WriteLine();
                 config.PrintUsage();
+            }
+        }
+        static DbConnectionStringBuilder WithoutSensitiveInformation(this DbConnectionStringBuilder b)
+        {
+            foreach (var v in new[] { "password", "Password", "PWD", "Pwd", "pwd" })
+            {
+                if (b.ContainsKey(v)) b[v] = "******";
+            }
+            return b;
+        }
+
+        static void WriteLine(string message, ConsoleColor color)
+        {
+            var fg = Console.ForegroundColor;
+            try
+            {
+                Console.ForegroundColor = color;
+                Console.WriteLine(message);
+            }
+            finally
+            {
+                Console.ForegroundColor = fg;
             }
         }
 

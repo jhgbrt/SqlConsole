@@ -1,70 +1,69 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SqlConsole.Host;
+using Xunit;
 
 namespace SqlConsole.UnitTests.Configuration
 {
-    [TestClass]
     public class CommandLineParamTests
     {
-        [TestMethod]
+        [Fact]
         public void Default_IsNull()
         {
             var value = new CommandLineParam();
-            Assert.IsNull(value.Name);
+            Assert.Null(value.Name);
         }
 
-        [TestMethod]
+        [Fact]
         public void SameString_Equal()
         {
             var value1 = CommandLineParam.server;
             var value2 = CommandLineParam.server;
-            Assert.AreEqual(value1, value2);
-            Assert.IsFalse(value1 != value2);
-            Assert.IsTrue(value1 == value2);
+            Assert.Equal(value1, value2);
+            Assert.False(value1 != value2);
+            Assert.True(value1 == value2);
         }
-        [TestMethod]
+        [Fact]
         public void SameString_Object_Equal()
         {
             object value1 = CommandLineParam.server;
             object value2 = CommandLineParam.server;
-            Assert.AreEqual(value1, value2);
+            Assert.Equal(value1, value2);
         }
 
-        [TestMethod]
+        [Fact]
         public void DifferentString_NotEqual()
         {
             var value1 = CommandLineParam.user;
             var value2 = CommandLineParam.password;
-            Assert.AreNotEqual(value1, value2);
-            Assert.IsTrue(value1 != value2);
-            Assert.IsFalse(value1 == value2);
+            Assert.NotEqual(value1, value2);
+            Assert.True(value1 != value2);
+            Assert.False(value1 == value2);
         }
-        [TestMethod]
+        [Fact]
         public void SameString_SameHashCode()
         {
             var value1 = CommandLineParam.integratedsecurity;
             var value2 = CommandLineParam.integratedsecurity;
-            Assert.AreEqual(value1.GetHashCode(), value2.GetHashCode());
+            Assert.Equal(value1.GetHashCode(), value2.GetHashCode());
         }
-        [TestMethod]
+        [Fact]
         public void DifferentString_DifferentHashCode()
         {
             var value1 = CommandLineParam.database;
             var value2 = CommandLineParam.server;
-            Assert.AreNotEqual(value1.GetHashCode(), value2.GetHashCode());
+            Assert.NotEqual(value1.GetHashCode(), value2.GetHashCode());
         }
 
-        [TestMethod]
+        [Fact]
         public void Equals_Null_ReturnsFalse()
         {
             object value1 = CommandLineParam.server;
-            Assert.IsFalse(value1.Equals(null));
+            Assert.False(value1.Equals(null));
         }
-        [TestMethod]
+        [Fact]
         public void Null_GetHashCode_ReturnsFalse()
         {
             object value1 = new CommandLineParam();
-            Assert.AreEqual(0, value1.GetHashCode());
+            Assert.Equal(0, value1.GetHashCode());
         }
     }
 }

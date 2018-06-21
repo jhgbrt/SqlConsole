@@ -1,9 +1,8 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Xunit;
 using SqlConsole.Host;
 
 namespace SqlConsole.UnitTests.Configuration
 {
-    [TestClass]
     public class CommandLineTests
     {
         private string _valueStr = "value";
@@ -14,8 +13,8 @@ namespace SqlConsole.UnitTests.Configuration
             _value = Value.From(_valueStr);
         }
 
-        [TestMethod]
-        public void ToString()
+        [Fact]
+        public void ToStringTest()
         {
             var commandLine = new CommandLine
             {
@@ -23,61 +22,61 @@ namespace SqlConsole.UnitTests.Configuration
                 [CommandLineParam.database] = Value.From("database"),
                 [CommandLineParam.user] = Value.From("user"),
             };
-            Assert.IsNotNull(commandLine.ToString());
+            Assert.NotNull(commandLine.ToString());
 
         }
-        [TestMethod]
+        [Fact]
         public void Server_WhenSet_SetsValue()
         {
             var commandLine = Test(_valueStr, CommandLineParam.server);
-            Assert.AreEqual(_value, commandLine.Server);
+            Assert.Equal(_value, commandLine.Server);
         }
-        [TestMethod]
+        [Fact]
         public void Server_WhenSetViaProperty_SetsValue()
         {
             var commandLine = new CommandLine {Server = _value};
-            Assert.AreEqual(_value, commandLine.Server);
+            Assert.Equal(_value, commandLine.Server);
         }
-        [TestMethod]
+        [Fact]
         public void Database_WhenSet_SetsValue()
         {
             var commandLine = Test(_valueStr, CommandLineParam.database);
         }
-        [TestMethod]
+        [Fact]
         public void File_WhenSet_SetsValue()
         {
             var commandLine = Test(_valueStr, CommandLineParam.file);
         }
-        [TestMethod]
+        [Fact]
         public void IntegratedSecurity_WhenSet_SetsValue()
         {
             var commandLine = Test(_valueStr, CommandLineParam.integratedsecurity);
-            Assert.AreEqual(_value, commandLine.IntegratedSecurity);
+            Assert.Equal(_value, commandLine.IntegratedSecurity);
         }
-        [TestMethod]
+        [Fact]
         public void Password_WhenSet_SetsValue()
         {
             var commandLine = Test(_valueStr, CommandLineParam.password);
         }
 
-        [TestMethod]
+        [Fact]
         public void User_WhenSet_SetsValue()
         {
             var commandLine = Test(_valueStr, CommandLineParam.user);
-            Assert.AreEqual(_value, commandLine.User);
+            Assert.Equal(_value, commandLine.User);
         }
 
-        [TestMethod]
+        [Fact]
         public void Port_WhenSet_SetsValue()
         {
             var commandLine = Test(_valueStr, CommandLineParam.port);
-            Assert.AreEqual(_value, commandLine.Port);
+            Assert.Equal(_value, commandLine.Port);
         }
 
         private static CommandLine Test(string commandLineValue, CommandLineParam param)
         {
             var commandLine = new CommandLine {[param] = Value.From(commandLineValue)};
-            Assert.AreEqual(commandLineValue, commandLine[param].Get());
+            Assert.Equal(commandLineValue, commandLine[param].Get());
             return commandLine;
         }
     }

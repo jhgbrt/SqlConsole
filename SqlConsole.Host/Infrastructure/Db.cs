@@ -7,7 +7,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Reflection;
 using System.Collections.ObjectModel;
-using System.Configuration;
 using System.Dynamic;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -583,36 +582,6 @@ namespace Net.Code.ADONet
             Config = config ?? DbConfig.Default;
         }
 
-#if !NETSTANDARD1_6
-        /// <summary>
-        /// Instantiate Db with connectionString and DbProviderName
-        /// </summary>
-        /// <param name = "connectionString">The connection string</param>
-        /// <param name = "providerName">The ADO .Net Provider name. When not specified, 
-        /// the default value is used (see DefaultProviderName)</param>
-        public Db(string connectionString, string providerName) : this(connectionString, DbConfig.FromProviderName(providerName), DbProviderFactories.GetFactory(providerName))
-        {
-        }
-
-        /// <summary>
-        /// Factory method, instantiating the Db class from the first connectionstring 
-        /// in the app.config or web.config file.
-        /// </summary>
-        /// <returns>Db</returns>
-        public static Db FromConfig() => FromConfig(ConfigurationManager.ConnectionStrings[0]);
-        /// <summary>
-        /// Factory method, instantiating the Db class from a named connectionstring 
-        /// in the app.config or web.config file.
-        /// </summary>
-        public static Db FromConfig(string connectionStringName) => FromConfig(ConfigurationManager.ConnectionStrings[connectionStringName]);
-        private static Db FromConfig(ConnectionStringSettings connectionStringSettings)
-        {
-            var connectionString = connectionStringSettings.ConnectionString;
-            var providerName = connectionStringSettings.ProviderName;
-            return new Db(connectionString, providerName);
-        }
-
-#endif
         /// <summary>
         /// Instantiate Db with connectionString and a custom IConnectionFactory
         /// </summary>
@@ -706,12 +675,12 @@ namespace Net.Code.ADONet
             get;
         }
 
-        public static readonly DbConfig Default = Create("System.Data.SqlClient");
+        public static readonly DbConfig Default = Create("sqlserver");
         public static DbConfig FromProviderName(string providerName)
         {
-            if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("Oracle"))
+            if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("oracle"))
                 return Oracle(providerName);
-            if (string.Equals(providerName, "Npgsql"))
+            if (string.Equals(providerName, "postgres"))
                 return PostGreSQL(providerName);
             return Create(providerName);
         }
@@ -720,9 +689,9 @@ namespace Net.Code.ADONet
         // one has to set the BindByName property on the OracleDbCommand.
         // Mapping: 
         // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
-        private static DbConfig Oracle(string providerName) => new DbConfig(SetBindByName, ADONet.MappingConvention.OracleStyle, providerName);
-        private static DbConfig PostGreSQL(string providerName) => new DbConfig(NoOp, ADONet.MappingConvention.UnderScores, providerName);
-        private static DbConfig Create(string providerName) => new DbConfig(NoOp, ADONet.MappingConvention.Default, providerName);
+        public static DbConfig Oracle(string providerName) => new DbConfig(SetBindByName, ADONet.MappingConvention.OracleStyle, providerName);
+        public static DbConfig PostGreSQL(string providerName) => new DbConfig(NoOp, ADONet.MappingConvention.UnderScores, providerName);
+        public static DbConfig Create(string providerName) => new DbConfig(NoOp, ADONet.MappingConvention.Default, providerName);
         private static void SetBindByName(dynamic c) => c.BindByName = true;
         private static void NoOp(dynamic c)
         {

@@ -36,6 +36,7 @@ namespace SqlConsole.Host
         public static readonly CommandLineParam user = new CommandLineParam("user", "User name (in case no integrated security is used)");
         public static readonly CommandLineParam password = new CommandLineParam("password", "Password (in case no integrated security is used)");
         public static readonly CommandLineParam integratedsecurity = new CommandLineParam("integratedSecurity", "use windows integrated security (or not)");
+        public static readonly CommandLineParam connectionString = new CommandLineParam("connectionString", "ADO.Net full connection string");
         public static readonly CommandLineParam file = new CommandLineParam("file", "The db File, for providers that attach directly to file");
         // ReSharper restore InconsistentNaming
     }

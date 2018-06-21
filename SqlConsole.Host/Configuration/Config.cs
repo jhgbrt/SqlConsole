@@ -1,13 +1,50 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
+using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
+using IBM.Data.DB2.Core;
+using Microsoft.Data.Sqlite;
 using Mono.Options;
+using MySql.Data.MySqlClient;
+using Net.Code.ADONet;
+using Npgsql;
+using Oracle.ManagedDataAccess.Client;
 using static System.Configuration.ConfigurationManager;
 using static SqlConsole.Host.ConnectionStringBuilder;
 
 namespace SqlConsole.Host
 {
+    static class ConfigEx
+    {
+        public static DbProviderFactory GetFactory(this Config config)
+        {
+            var providerName = config.ProviderName;
+            switch (providerName)
+            {
+                case "postgres": return NpgsqlFactory.Instance;
+                case "mysql": return MySqlClientFactory.Instance;
+                case "sqlserver": return SqlClientFactory.Instance;
+                case "db2": return DB2Factory.Instance;
+                case "oracle": return OracleClientFactory.Instance;
+                case "sqlite": return SqliteFactory.Instance;
+                default: throw new ConnectionConfigException($"Unsupported provider: '{providerName}'");
+            }
+        }
+
+        public static DbConfig GetDbConfig(this Config config)
+        {
+            var providerName = config.ProviderName;
+            switch (providerName)
+            {
+                case "postgres": return DbConfig.PostGreSQL(providerName);
+                case "oracle": return DbConfig.Oracle(providerName);
+                default: return DbConfig.Create(providerName);
+            }
+        }
+    }
+
     class Config
     {
         private readonly Provider _provider;
@@ -55,7 +92,7 @@ namespace SqlConsole.Host
         private Config(string[] args)
         {
             Provider? p = null;
-            new OptionSet { { "providerName=", "", s => p = new Provider(s) } }.Parse(args);
+            new OptionSet { { "provider=", "", s => p = new Provider(s) } }.Parse(args);
 
             var provider = p ?? Provider.Default;
 
@@ -64,18 +101,18 @@ namespace SqlConsole.Host
             var commandLine = new CommandLine();
             var connectionString = new ConnectionString();
 
-            Action<CommandLineParam, string> setCommandLineValue = (cl, s) => commandLine[cl] = Value.From(s.Trim('"'));
+            void SetCommandLineValue(CommandLineParam cl, string s) => commandLine[cl] = Value.From(s.Trim('"'));
 
-            Func<string, string, bool> onUnknownOption = (name, value) =>
+            bool OnUnknownOption(string name, string value)
             {
                 connectionString[new ConnectionStringParam(name.Trim('"'))] = Value.From(value.Trim('"'));
                 return true;
-            };
+            }
 
             var options = new MyOptionSet(
                 CommandLineToConnectionString(provider), 
-                setCommandLineValue,
-                onUnknownOption)
+                SetCommandLineValue,
+                OnUnknownOption)
             {
                 {
                     "output=",
@@ -94,7 +131,7 @@ namespace SqlConsole.Host
                     s => nonquery = true
                 },
                 {
-                    "providerName=",
+                    "provider=",
                     "The db provider name.",
                     s => provider = new Provider(s)
                 },

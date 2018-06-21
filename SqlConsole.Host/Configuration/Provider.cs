@@ -18,15 +18,15 @@ namespace SqlConsole.Host
         public static bool operator !=(Provider left, Provider right) => !(left == right);
         #endregion
 
-        public override string ToString() => Name ?? "Default";
+        public override string ToString() => Name ?? "default";
 
-        public static readonly Provider Sqlserver = new Provider("System.Data.SqlClient");
-        public static readonly Provider SqlCompact = new Provider("System.Data.SqlServerCe.4.0");
-        public static readonly Provider SqLite = new Provider("System.Data.SqLite");
-        public static readonly Provider Oracle = new Provider("Oracle.ManagedDataAccess.Client");
-        public static readonly Provider IbmDB2 = new Provider("IBM.Data.DB2");
-        public static readonly Provider MySql = new Provider("MySql.Data.MySqlClient");
-        public static readonly Provider PostGreSQL = new Provider("Npgsql");
+        public static readonly Provider Sqlserver = new Provider("sqlserver");
+        public static readonly Provider SqlCompact = new Provider("sqlce");
+        public static readonly Provider SqLite = new Provider("sqlite");
+        public static readonly Provider Oracle = new Provider("oracle");
+        public static readonly Provider IbmDB2 = new Provider("db2");
+        public static readonly Provider MySql = new Provider("mysql");
+        public static readonly Provider PostGreSQL = new Provider("postgres");
         public static readonly Provider Default = new Provider(null);
     }
 }

@@ -1,67 +1,64 @@
 ﻿using System.IO;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using SqlConsole.Host;
 
 namespace SqlConsole.UnitTests.Configuration
 {
-    [TestClass]
     public class ConfigTests
     {
-        [TestMethod]
-        [ExpectedException(typeof(ConnectionConfigException))]
+        [Fact]
         public void WhenNoArguments_ThenThrows()
         {
-            var config = Config.Create(new string[] { });
-            Assert.AreEqual(Provider.Default.Name, config.ProviderName);
+            Assert.Throws<ConnectionConfigException>(() => Config.Create(new string[] { }));
         }
-        [TestMethod]
+        [Fact]
         public void WhenArgContainsHelp_HelpIsTrue()
         {
             var config = Config.Create(new[] { "--server=server", "--database=database", "--help" });
-            Assert.IsTrue(config.Help);
+            Assert.True(config.Help);
         }
-        [TestMethod]
+        [Fact]
         public void WhenArgContainsScalar_ThenScalarIsTrue()
         {
             var config = Config.Create(new[] { "--server=server", "--database=database", "--scalar" });
-            Assert.IsTrue(config.Scalar);
+            Assert.True(config.Scalar);
         }
-        [TestMethod]
+        [Fact]
         public void WhenArgContainsScalar_ThenNonQueryIsTrue()
         {
             var config = Config.Create(new[] { "--server=server", "--database=database", "--nonquery" });
-            Assert.IsTrue(config.NonQuery);
+            Assert.True(config.NonQuery);
         }
-        [TestMethod]
+        [Fact]
         public void WhenArgContainsOutput_ThenOutputIsSet()
         {
             var config = Config.Create(new[] { "--server=server", "--database=database", "--output=output.csv" });
-            Assert.AreEqual("output.csv", config.Output);
+            Assert.Equal("output.csv", config.Output);
         }
-        [TestMethod]
+        [Fact]
         public void WhenArgContainsExistingFile_ThenThatFileIsTheQuery()
         {
             File.WriteAllText("query.txt", "THIS IS THE QUERY");
             var config = Config.Create(new[] {"--server=server", "--database=database", "query.txt" });
-            Assert.AreEqual("THIS IS THE QUERY", config.Query);
+            Assert.Equal("THIS IS THE QUERY", config.Query);
         }
-        [TestMethod]
+        [Fact]
         public void WhenArgContainsRandomString_ThenThatStringIsTheQuery()
         {
             var config = Config.Create(new[] { "--server=server", "--database=database", "THIS IS THE QUERY" });
-            Assert.AreEqual("THIS IS THE QUERY", config.Query);
+            Assert.Equal("THIS IS THE QUERY", config.Query);
         }
-        [TestMethod]
+        [Fact]
         public void WhenKnownCommandLineArgIsSet_ThenItIsTranslatedToConnectionStringArgument()
         {
             var config = Config.Create(new[] { "--server=server", "--database=database" });
-            Assert.IsTrue(config.ConnectionString.Contains("Data Source=server"));
+            Assert.Contains("Data Source=server", config.ConnectionString);
         }
-        [TestMethod]
+        [Fact]
         public void WhenUnknownCommandLineArgArgIsSet_ThenItIsTranslatedToConnectionStringArgument()
         {
             var config = Config.Create(new[] { "--server=server", "--database=database", "--\"Some Name\"=\"Some Value\"" });
-            Assert.IsTrue(config.ConnectionString.Contains("Some Name=\"Some Value\""), config.ConnectionString);
+            Assert.True(config.ConnectionString.Contains("Some Name=\"Some Value\""), config.ConnectionString);
         }
     }
 }
