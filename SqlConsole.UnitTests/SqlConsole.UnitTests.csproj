@@ -8,9 +8,6 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.3.1" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SqlConsole.Host\SqlConsole.Host.csproj">
-      <Project>{6c81fea1-a1d6-431f-a610-998924d4632f}</Project>
-      <Name>SqlConsole.Host</Name>
-    </ProjectReference>
+    <ProjectReference Include="..\SqlConsole.Host\SqlConsole.Host.csproj" />
   </ItemGroup>
 </Project>

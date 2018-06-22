@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.IO;
 using System.Text;
+using static System.StringComparison;
 
 namespace SqlConsole.Host
 {
@@ -21,26 +22,19 @@ namespace SqlConsole.Host
         {
             foreach (var query in ReadQueries())
             {
-                if (string.IsNullOrEmpty(query))
-                    continue;
+                if (string.IsNullOrEmpty(query) 
+                    || query.StartsWith("quit", OrdinalIgnoreCase) 
+                    || query.StartsWith("exit", OrdinalIgnoreCase))
+                    return;
 
-                var firstWord = query.FirstWord().ToLowerInvariant();
-
-                switch (firstWord)
+                try
                 {
-                    case "quit":
-                    case "exit":
-                        return;
-                    default:
-                        try
-                        {
-                            _queryHandler.Execute(query);
-                        }
-                        catch (DbException e)
-                        {
-                            _textWriter.WriteLine(e.Message);
-                        }
-                        break;
+                    Console.WriteLine();
+                    _queryHandler.Execute(query);
+                }
+                catch (DbException e)
+                {
+                    _textWriter.WriteLine(e.Message);
                 }
             }
         }

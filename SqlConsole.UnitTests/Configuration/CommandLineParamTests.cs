@@ -1,5 +1,6 @@
 using SqlConsole.Host;
 using Xunit;
+using static SqlConsole.Host.CommandLineParam;
 
 namespace SqlConsole.UnitTests.Configuration
 {
@@ -15,8 +16,8 @@ namespace SqlConsole.UnitTests.Configuration
         [Fact]
         public void SameString_Equal()
         {
-            var value1 = CommandLineParam.server;
-            var value2 = CommandLineParam.server;
+            var value1 = server;
+            var value2 = server;
             Assert.Equal(value1, value2);
             Assert.False(value1 != value2);
             Assert.True(value1 == value2);
@@ -24,16 +25,16 @@ namespace SqlConsole.UnitTests.Configuration
         [Fact]
         public void SameString_Object_Equal()
         {
-            object value1 = CommandLineParam.server;
-            object value2 = CommandLineParam.server;
+            object value1 = server;
+            object value2 = server;
             Assert.Equal(value1, value2);
         }
 
         [Fact]
         public void DifferentString_NotEqual()
         {
-            var value1 = CommandLineParam.user;
-            var value2 = CommandLineParam.password;
+            var value1 = user;
+            var value2 = password;
             Assert.NotEqual(value1, value2);
             Assert.True(value1 != value2);
             Assert.False(value1 == value2);
@@ -41,22 +42,22 @@ namespace SqlConsole.UnitTests.Configuration
         [Fact]
         public void SameString_SameHashCode()
         {
-            var value1 = CommandLineParam.integratedsecurity;
-            var value2 = CommandLineParam.integratedsecurity;
+            var value1 = integratedsecurity;
+            var value2 = integratedsecurity;
             Assert.Equal(value1.GetHashCode(), value2.GetHashCode());
         }
         [Fact]
         public void DifferentString_DifferentHashCode()
         {
-            var value1 = CommandLineParam.database;
-            var value2 = CommandLineParam.server;
+            var value1 = database;
+            var value2 = server;
             Assert.NotEqual(value1.GetHashCode(), value2.GetHashCode());
         }
 
         [Fact]
         public void Equals_Null_ReturnsFalse()
         {
-            object value1 = CommandLineParam.server;
+            object value1 = server;
             Assert.False(value1.Equals(null));
         }
         [Fact]

@@ -7,28 +7,19 @@ namespace SqlConsole.Host
     {
         static void Main(string[] args)
         {
-
-            Config config;
-
+            Config config = null;
             try
             {
                 config = Config.Create(args);
-            }
-            catch (ConnectionConfigException re)
-            {
-                WriteLine(re.Message, ConsoleColor.Red);
-                return;
-            }
 
-            if (config.Help)
-            {
-                PrintUsage(config);
-                return;
-            }
+                if (config.Help)
+                {
+                    PrintUsage(config);
+                    return;
+                }
 
+                Console.WriteLine(config.ConnectionString);
 
-            try
-            {
                 var csb = new DbConnectionStringBuilder {ConnectionString = config.ConnectionString}.WithoutSensitiveInformation();
                 Console.WriteLine(csb.ConnectionString);
 
@@ -44,13 +35,19 @@ namespace SqlConsole.Host
                     }
                 }
             }
+            catch (ConnectionConfigException re)
+            {
+                WriteLine(re.Message, ConsoleColor.Red);
+                PrintUsage(config);
+            }
             catch (Exception e)
             {
                 Console.WriteLine(e);
                 Console.WriteLine();
-                config.PrintUsage();
+                PrintUsage(config);
             }
         }
+
         static DbConnectionStringBuilder WithoutSensitiveInformation(this DbConnectionStringBuilder b)
         {
             foreach (var v in new[] { "password", "Password", "PWD", "Pwd", "pwd" })
@@ -84,7 +81,7 @@ namespace SqlConsole.Host
             Console.WriteLine("");
             Console.WriteLine("      query or file: an inline SQL query, or the path to a file containing such query");
             Console.WriteLine("");
-            config.PrintUsage();
+            config?.PrintUsage();
         }
     }
 }

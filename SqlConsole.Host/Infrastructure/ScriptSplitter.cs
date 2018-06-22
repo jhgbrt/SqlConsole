@@ -1,364 +1,188 @@
-﻿// Courtesy of SubText project/Phil Haack
-
-using System;
-using System.Collections;
+﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Runtime.Serialization;
 using System.Text;
 using static System.Char;
 
-namespace Subtext.Scripting
+namespace SqlConsole.Host.Infrastructure
 {
-    [Serializable]
-    public class SqlParseException : Exception
+    class ScriptSplitter
     {
-        public SqlParseException()
+        public static IEnumerable<string> Split(string script)
         {
-        }
-
-        public SqlParseException(string message)
-            : base(message)
-        {
-        }
-
-        public SqlParseException(string message, Exception exception)
-            : base(message, exception)
-        {
-        }
-
-        protected SqlParseException(SerializationInfo info, StreamingContext context)
-            : base(info, context)
-        {
-        }
-    }
-
-    public class ScriptSplitter : IEnumerable<string>
-    {
-        private readonly TextReader _reader;
-        private StringBuilder _builder = new StringBuilder();
-        private char _current;
-        private char _lastChar;
-        private ScriptReader _scriptReader;
-
-        public ScriptSplitter(string script)
-        {
-            _reader = new StringReader(script);
-            _scriptReader = new SeparatorLineReader(this);
-        }
-
-        internal bool HasNext => _reader.Peek() != -1;
-
-        internal char Current => _current;
-
-        internal char LastChar => _lastChar;
-
-        #region IEnumerable<string> Members
-
-        public IEnumerator<string> GetEnumerator()
-        {
-            while (Next())
+            var buffer = new StringBuilder();
+            var sc = new StringBuilder();
+            char quote;
+            Func<char, bool> state = Script;
+            foreach (var c in script)
             {
-                if (!Split()) continue;
-                var script = _builder.ToString().Trim();
-                if (script.Length > 0)
+                if (state(c) && sc.Length > 0)
                 {
-                    yield return script;
+                    yield return sc.ToString();
+                    sc.Clear();
                 }
-                Reset();
             }
-            if (_builder.Length <= 0) yield break;
-            var scriptRemains = _builder.ToString().Trim();
-            if (scriptRemains.Length > 0)
+
+            if (buffer.Length > 0 && state != Go)
             {
-                yield return scriptRemains;
+                sc.Append(buffer);
             }
-        }
 
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        #endregion
-
-        internal bool Next()
-        {
-            if (!HasNext)
+            if (sc.Length > 0)
             {
+                yield return sc.ToString();
+            }
+
+            bool Script(char c)
+            {
+                switch (ToUpperInvariant(c))
+                {
+                    case '\'':
+                    case '\"':
+                        {
+                            quote = c;
+                            state = Quote;
+                            sc.Append(c);
+                            break;
+                        }
+                    case '/':
+                    case '-':
+                        {
+                            state = MaybeComment;
+                            buffer.Append(c);
+                            break;
+                        }
+                    case 'G' when sc.Length == 0 || IsWhiteSpace(sc[sc.Length - 1]) || IsEol(sc[sc.Length - 1]):
+                    {
+                        state = MaybeGo;
+                        buffer.Append(c);
+                        break;
+                    }
+                    default:
+                    {
+                        sc.Append(c);
+                        break;
+                    }
+                }
                 return false;
             }
 
-            _lastChar = _current;
-            _current = (char)_reader.Read();
-            return true;
-        }
-
-        internal int Peek() => _reader.Peek();
-
-        private bool Split() => _scriptReader.ReadNextSection();
-
-        internal void SetParser(ScriptReader newReader) => _scriptReader = newReader;
-
-        internal void Append(string text) => _builder.Append(text);
-
-        internal void Append(char c) => _builder.Append(c);
-
-        void Reset()
-        {
-            _current = _lastChar = MinValue;
-            _builder = new StringBuilder();
-        }
-    }
-    
-    abstract class ScriptReader
-    {
-        protected readonly ScriptSplitter Splitter;
-
-        protected ScriptReader(ScriptSplitter splitter)
-        {
-            Splitter = splitter;
-        }
-
-
-        /// <summary>
-        /// This acts as a template method. Specific Reader instances 
-        /// override the component methods.
-        /// </summary>
-        public bool ReadNextSection()
-        {
-            if (IsQuote)
+            bool MaybeGo(char c)
             {
-                ReadQuotedString();
-                return false;
-            }
-
-            if (BeginDashDashComment)
-            {
-                return ReadDashDashComment();
-            }
-
-            if (BeginSlashStarComment)
-            {
-                ReadSlashStarComment();
-                return false;
-            }
-
-            return ReadNext();
-        }
-
-
-        protected virtual bool ReadDashDashComment()
-        {
-            Splitter.Append(Current);
-            while (Splitter.Next())
-            {
-                Splitter.Append(Current);
-                if (EndOfLine)
+                buffer.Append(c);
+                if (ToUpperInvariant(c) == 'O')
                 {
-                    break;
-                }
-            }
-            //We should be EndOfLine or EndOfScript here.
-            Splitter.SetParser(new SeparatorLineReader(Splitter));
-            return false;
-        }
-
-
-        protected virtual void ReadSlashStarComment()
-        {
-            if (!ReadSlashStarCommentWithResult()) return;
-            Splitter.SetParser(new SeparatorLineReader(Splitter));
-        }
-
-
-        private bool ReadSlashStarCommentWithResult()
-        {
-            Splitter.Append(Current);
-            while (Splitter.Next())
-            {
-                if (BeginSlashStarComment)
-                {
-                    ReadSlashStarCommentWithResult();
-                    continue;
-                }
-                Splitter.Append(Current);
-
-                if (EndSlashStarComment)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-
-        protected virtual void ReadQuotedString()
-        {
-            Splitter.Append(Current);
-            while (Splitter.Next())
-            {
-                Splitter.Append(Current);
-                if (IsQuote)
-                {
-                    return;
-                }
-            }
-        }
-
-        protected abstract bool ReadNext();
-
-        #region Helper methods and properties
-
-        protected bool HasNext => Splitter.HasNext;
-
-        protected bool WhiteSpace => IsWhiteSpace(Splitter.Current);
-
-        protected bool EndOfLine => '\n' == Splitter.Current;
-
-        protected bool IsQuote => '\'' == Splitter.Current;
-
-        protected char Current => Splitter.Current;
-
-        protected char LastChar => Splitter.LastChar;
-
-        bool BeginDashDashComment => Current == '-' && Peek() == '-';
-
-        bool BeginSlashStarComment => Current == '/' && Peek() == '*';
-
-        bool EndSlashStarComment => LastChar == '*' && Current == '/';
-
-        protected static bool CharEquals(char expected, char actual) => ToLowerInvariant(expected) == ToLowerInvariant(actual);
-
-        protected bool CharEquals(char compare) => CharEquals(Current, compare);
-
-        private char Peek() => !HasNext ? MinValue : (char)Splitter.Peek();
-
-        #endregion
-    }
-    
-    class SeparatorLineReader : ScriptReader
-    {
-        private StringBuilder _builder = new StringBuilder();
-        private bool _foundGo;
-        private bool _gFound;
-
-        public SeparatorLineReader(ScriptSplitter splitter)
-            : base(splitter)
-        {
-        }
-
-        void Reset()
-        {
-            _foundGo = false;
-            _gFound = false;
-            _builder = new StringBuilder();
-        }
-
-        protected override bool ReadDashDashComment()
-        {
-            if (!_foundGo)
-            {
-                base.ReadDashDashComment();
-                return false;
-            }
-            base.ReadDashDashComment();
-            return true;
-        }
-
-        protected override void ReadSlashStarComment()
-        {
-            if (_foundGo)
-            {
-                throw new SqlParseException("SqlParseException: Incorrect syntax near GO");
-            }
-            base.ReadSlashStarComment();
-        }
-
-        protected override bool ReadNext()
-        {
-            if (EndOfLine) //End of line or script
-            {
-                if (!_foundGo)
-                {
-                    _builder.Append(Current);
-                    Splitter.Append(_builder.ToString());
-                    Splitter.SetParser(new SeparatorLineReader(Splitter));
-                    return false;
-                }
-                Reset();
-                return true;
-            }
-
-            if (WhiteSpace)
-            {
-                _builder.Append(Current);
-                return false;
-            }
-
-            if (!CharEquals('g') && !CharEquals('o'))
-            {
-                FoundNonEmptyCharacter(Current);
-                return false;
-            }
-
-            if (CharEquals('o'))
-            {
-                if (CharEquals('g', LastChar) && !_foundGo)
-                {
-                    _foundGo = true;
+                    state = Go;
                 }
                 else
                 {
-                    FoundNonEmptyCharacter(Current);
+                    sc.Append(buffer);
+                    buffer.Clear();
+                    state = Script;
                 }
-            }
-
-            if (CharEquals('g', Current))
-            {
-                if (_gFound || (!IsWhiteSpace(LastChar) && LastChar != MinValue))
-                {
-                    FoundNonEmptyCharacter(Current);
-                    return false;
-                }
-
-                _gFound = true;
-            }
-
-            if (!HasNext && _foundGo)
-            {
-                Reset();
-                return true;
-            }
-
-            _builder.Append(Current);
-            return false;
-        }
-
-        void FoundNonEmptyCharacter(char c)
-        {
-            _builder.Append(c);
-            Splitter.Append(_builder.ToString());
-            Splitter.SetParser(new SqlScriptReader(Splitter));
-        }
-
-    }
-
-    class SqlScriptReader : ScriptReader
-    {
-        public SqlScriptReader(ScriptSplitter splitter)
-            : base(splitter)
-        {
-        }
-
-        protected override bool ReadNext()
-        {
-            if (EndOfLine) //end of line
-            {
-                Splitter.Append(Current);
-                Splitter.SetParser(new SeparatorLineReader(Splitter));
                 return false;
             }
 
-            Splitter.Append(Current);
-            return false;
+            bool Go(char c)
+            {
+                buffer.Append(c);
+
+                if (!IsEol(c)) return false;
+
+                buffer.Clear();
+                state = AfterGo;
+                return true;
+            }
+
+            bool AfterGo(char c)
+            {
+                if (ToUpperInvariant(c) == 'G')
+                {
+                    buffer.Append(c);
+                    state = MaybeGo;
+                }
+                else if (!IsEol(c))
+                {
+                    sc.Append(c);
+                    state = Script;
+                }
+                return false;
+            }
+
+            bool MaybeComment(char c)
+            {
+                buffer.Append(c);
+                if (buffer[0] == '/' && buffer[1] == '/')
+                {
+                    state = SingleLineComment;
+                }
+                else if (buffer[0] == '/' && buffer[1] == '*')
+                {
+                    state = MultiLineComment;
+                }
+                else if (buffer[0] == '-' && buffer[1] == '-')
+                {
+                    state = SingleLineComment;
+                }
+                else
+                {
+                    sc.Append(buffer);
+                    buffer.Clear();
+                    state = Script;
+                }
+                return false;
+            }
+
+            bool SingleLineComment(char c)
+            {
+                buffer.Append(c);
+                if (IsEol(c))
+                {
+                    state = Script;
+                    sc.Append(buffer);
+                    buffer.Clear();
+                }
+                return false;
+            }
+
+            bool MultiLineComment(char c)
+            {
+                buffer.Append(c);
+                if (buffer[buffer.Length - 2] == '*' && buffer[buffer.Length - 1] == '/')
+                {
+                    state = Script;
+                    sc.Append(buffer);
+                    buffer.Clear();
+                }
+                return false;
+            }
+
+            bool EndQuote(char c)
+            {
+                sc.Append(c);
+
+                if (c == quote)
+                    state = Quote;
+                else
+                    state = Script;
+
+                return false;
+            }
+            
+            bool Quote(char c)
+            {
+                sc.Append(c);
+
+                if (c == quote)
+                    state = EndQuote;
+
+                return false;
+            }
+
+            bool IsEol(char c)
+            {
+                return c == '\r' || c == '\n';
+            }
         }
     }
+
 }

@@ -1,6 +1,6 @@
 ﻿using System;
-using Xunit;
 using SqlConsole.Host;
+using Xunit;
 
 namespace SqlConsole.UnitTests.Infrastructure
 {
@@ -9,11 +9,8 @@ namespace SqlConsole.UnitTests.Infrastructure
         [Fact]
         public void BookTitleToSentenceTests_InputNull_Throws()
         {
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                string s = null;
-                s.BookTitleToSentence();
-            });
+            string s = null;
+            Assert.Throws<ArgumentNullException>(() => s.BookTitleToSentence());
         }
         [Fact]
         public void BookTitleToSentenceTests_EmptyString()

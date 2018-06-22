@@ -1,7 +1,8 @@
 {
   "profiles": {
     "SqlConsole.Host": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "--server=(localdb)\\mssqllocaldb --database=testdb --provider=sqlserver"
     }
   }
 }

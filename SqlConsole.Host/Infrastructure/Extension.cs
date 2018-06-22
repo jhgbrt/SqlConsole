@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
-using Subtext.Scripting;
+using SqlConsole.Host.Infrastructure;
 
 namespace SqlConsole.Host
 {
@@ -87,8 +88,8 @@ namespace SqlConsole.Host
 
         public static IEnumerable<string> SplitOnGo(this string s)
         {
-            var splitter = new ScriptSplitter(s);
-            return splitter;
-        } 
+            return ScriptSplitter.Split(s);
+        }
+
     }
 }
