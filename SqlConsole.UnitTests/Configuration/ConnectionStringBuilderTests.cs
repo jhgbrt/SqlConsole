@@ -1,8 +1,8 @@
-using System.Collections.Generic;
 using System.Data.Common;
-using System.Linq;
-using Xunit;
 using SqlConsole.Host;
+using Xunit;
+using static SqlConsole.Host.CommandLineParam;
+using static SqlConsole.Host.ConnectionStringBuilder;
 
 namespace SqlConsole.UnitTests.Configuration
 {
@@ -13,16 +13,14 @@ namespace SqlConsole.UnitTests.Configuration
         {
             var provider = Provider.Default;
             var commandLine = new CommandLine();
-            var connectionString = new ConnectionString();
-            Assert.Throws<ConnectionConfigException>(() => ConnectionStringBuilder.GetConnectionString(provider, commandLine, connectionString));
+            Assert.Throws<ConnectionConfigException>(() => GetConnectionString(provider, commandLine));
         }
         [Fact]
         public void DefaultProvider_invalidCommandLine_Throws()
         {
             var provider = Provider.Default;
-            var commandLine = new CommandLine { [CommandLineParam.user] = Value.From("user") };
-            var connectionString = new ConnectionString();
-            Assert.Throws<ConnectionConfigException>(() => ConnectionStringBuilder.GetConnectionString(provider, commandLine, connectionString));
+            var commandLine = new CommandLine {[user] = "user"};
+            Assert.Throws<ConnectionConfigException>(() => GetConnectionString(provider, commandLine));
         }
 
         [Fact]
@@ -31,10 +29,10 @@ namespace SqlConsole.UnitTests.Configuration
             var provider = Provider.Default;
             var commandLine = new CommandLine
             {
-                [CommandLineParam.server] = Value.From("server"),
-                [CommandLineParam.database] = Value.From("database"),
-                [CommandLineParam.user] = Value.From("user"),
-                [CommandLineParam.password] = Value.From("password"),
+                [server] = "server",
+                [database] = "database",
+                [user] = "user",
+                [password] = "password",
             };
             var cb = GetConnectionStringBuilder(provider, commandLine);
             Assert.Equal("server", cb["Data Source"]);
@@ -49,10 +47,10 @@ namespace SqlConsole.UnitTests.Configuration
             var provider = Provider.Sqlserver;
             var commandLine = new CommandLine
             {
-                [CommandLineParam.server] = Value.From("server"),
-                [CommandLineParam.database] = Value.From("database"),
-                [CommandLineParam.user] = Value.From("user"),
-                [CommandLineParam.password] = Value.From("password"),
+                [server] = "server",
+                [database] = "database",
+                [user] = "user",
+                [password] = "password",
             };
             var cb = GetConnectionStringBuilder(provider, commandLine);
             Assert.Equal("server", cb["Data Source"]);
@@ -67,10 +65,10 @@ namespace SqlConsole.UnitTests.Configuration
             var provider = Provider.Oracle;
             var commandLine = new CommandLine
             {
-                [CommandLineParam.server] = Value.From("server"),
-                [CommandLineParam.database] = Value.From("database"),
-                [CommandLineParam.user] = Value.From("user"),
-                [CommandLineParam.password] = Value.From("password"),
+                [server] = "server",
+                [database] = "database",
+                [user] = "user",
+                [password] = "password",
             };
             var cb = GetConnectionStringBuilder(provider, commandLine);
             Assert.Equal("server", cb["Data Source"]);
@@ -84,11 +82,11 @@ namespace SqlConsole.UnitTests.Configuration
             var provider = Provider.IbmDB2;
             var commandLine = new CommandLine
             {
-                [CommandLineParam.server] = Value.From("server"),
-                [CommandLineParam.port] = Value.From("1234"),
-                [CommandLineParam.database] = Value.From("database"),
-                [CommandLineParam.user] = Value.From("user"),
-                [CommandLineParam.password] = Value.From("password"),
+                [server] = "server",
+                [port] = "1234",
+                [database] = "database",
+                [user] = "user",
+                [password] = "password",
             };
             var cb = GetConnectionStringBuilder(provider, commandLine);
             Assert.Equal("server:1234", cb["Server"]);
@@ -102,10 +100,10 @@ namespace SqlConsole.UnitTests.Configuration
             var provider = Provider.IbmDB2;
             var commandLine = new CommandLine
             {
-                [CommandLineParam.server] = Value.From("server"),
-                [CommandLineParam.database] = Value.From("database"),
-                [CommandLineParam.user] = Value.From("user"),
-                [CommandLineParam.password] = Value.From("password"),
+                [server] = "server",
+                [database] = "database",
+                [user] = "user",
+                [password] = "password",
             };
             var cb = GetConnectionStringBuilder(provider, commandLine);
             Assert.Equal("server", cb["Server"]);
@@ -120,8 +118,8 @@ namespace SqlConsole.UnitTests.Configuration
             var provider = Provider.SqLite;
             var commandLine = new CommandLine
             {
-                [CommandLineParam.file] = Value.From("file"),
-                [CommandLineParam.password] = Value.From("password"),
+                [file] = "file",
+                [password] = "password",
             };
             var cb = GetConnectionStringBuilder(provider, commandLine);
             Assert.Equal("file", cb["Data Source"]);
@@ -134,8 +132,8 @@ namespace SqlConsole.UnitTests.Configuration
             var provider = Provider.SqlCompact;
             var commandLine = new CommandLine
             {
-                [CommandLineParam.file] = Value.From("file"),
-                [CommandLineParam.password] = Value.From("password"),
+                [file] = "file",
+                [password] = "password",
             };
             var cb = GetConnectionStringBuilder(provider, commandLine);
             Assert.Equal("file", cb["Data Source"]);
@@ -144,123 +142,12 @@ namespace SqlConsole.UnitTests.Configuration
 
         private static DbConnectionStringBuilder GetConnectionStringBuilder(Provider provider, CommandLine commandLine)
         {
-            var result = ConnectionStringBuilder.GetConnectionString(provider, commandLine, new ConnectionString());
-            var cb = new DbConnectionStringBuilder()
+            var result = GetConnectionString(provider, commandLine);
+            var cb = new DbConnectionStringBuilder
             {
                 ConnectionString = result
             };
             return cb;
-        }
-
-        [Fact]
-        public void CommandLineToConnectionString_Default()
-        {
-            var result = ConnectionStringBuilder.CommandLineToConnectionString(Provider.Default)
-                .OrderBy(x => x.Key.Name).ToList();
-            var expected = new Dictionary<CommandLineParam, ConnectionStringParam>
-            {
-                {CommandLineParam.server, ConnectionStringParam.DataSource},
-                {CommandLineParam.database, ConnectionStringParam.InitialCatalog},
-                {CommandLineParam.user, ConnectionStringParam.UserId},
-                {CommandLineParam.password, ConnectionStringParam.Password},
-                {CommandLineParam.integratedsecurity, ConnectionStringParam.IntegratedSecurity},
-            }.OrderBy(x => x.Key.Name).ToList();
-            Assert.Equal(expected, result);
-        }
-        [Fact]
-        public void CommandLineToConnectionString_SqlServer()
-        {
-            var result = ConnectionStringBuilder.CommandLineToConnectionString(Provider.Sqlserver).OrderBy(x => x.Key.Name).ToList();
-            var expected = new Dictionary<CommandLineParam, ConnectionStringParam>
-            {
-                {CommandLineParam.server, ConnectionStringParam.DataSource},
-                {CommandLineParam.database, ConnectionStringParam.InitialCatalog},
-                {CommandLineParam.user, ConnectionStringParam.UserId},
-                {CommandLineParam.password, ConnectionStringParam.Password},
-                {CommandLineParam.integratedsecurity, ConnectionStringParam.IntegratedSecurity},
-                {CommandLineParam.file, ConnectionStringParam.Attachdbfilename},
-            }.OrderBy(x => x.Key.Name).ToList();
-            Assert.Equal(expected, result);
-        }
-        [Fact]
-        public void CommandLineToConnectionString_Oracle()
-        {
-            var result = ConnectionStringBuilder.CommandLineToConnectionString(Provider.Oracle).OrderBy(x => x.Key.Name).ToList();
-            var expected = new Dictionary<CommandLineParam, ConnectionStringParam>
-            {
-                {CommandLineParam.server, ConnectionStringParam.DataSource},
-                {CommandLineParam.database, ConnectionStringParam.InitialCatalog},
-                {CommandLineParam.user, ConnectionStringParam.UserId},
-                {CommandLineParam.password, ConnectionStringParam.Password},
-                {CommandLineParam.integratedsecurity, ConnectionStringParam.IntegratedSecurity},
-            }.OrderBy(x => x.Key.Name).ToList();
-            Assert.Equal(expected, result);
-        }
-        [Fact]
-        public void CommandLineToConnectionString_Sqlite()
-        {
-            var result = ConnectionStringBuilder.CommandLineToConnectionString(Provider.SqLite).OrderBy(x => x.Key.Name).ToList();
-            var expected = new Dictionary<CommandLineParam, ConnectionStringParam>
-            {
-                {CommandLineParam.file, ConnectionStringParam.DataSource},
-                {CommandLineParam.password, ConnectionStringParam.Password},
-            }.OrderBy(x => x.Key.Name).ToList();
-            Assert.Equal(expected, result);
-        }
-        [Fact]
-        public void CommandLineToConnectionString_SqlCompact()
-        {
-            var result = ConnectionStringBuilder.CommandLineToConnectionString(Provider.SqlCompact).OrderBy(x => x.Key.Name).ToList();
-            var expected = new Dictionary<CommandLineParam, ConnectionStringParam>
-            {
-                {CommandLineParam.file, ConnectionStringParam.DataSource},
-                {CommandLineParam.password, ConnectionStringParam.Password}
-            }.OrderBy(x => x.Key.Name).ToList();
-            Assert.Equal(expected, result);
-        }
-        [Fact]
-        public void CommandLineToConnectionString_IBMDB2()
-        {
-            var result = ConnectionStringBuilder.CommandLineToConnectionString(Provider.IbmDB2).OrderBy(x => x.Key.Name).ToList();
-            var expected = new Dictionary<CommandLineParam, ConnectionStringParam>
-            {
-                {CommandLineParam.server, ConnectionStringParam.Server},
-                {CommandLineParam.port, ConnectionStringParam.Port},
-                {CommandLineParam.database, ConnectionStringParam.Database},
-                {CommandLineParam.user, ConnectionStringParam.Uid},
-                {CommandLineParam.password, ConnectionStringParam.Pwd},
-            }.OrderBy(x => x.Key.Name).ToList();
-            Assert.Equal(expected, result);
-        }
-        [Fact]
-        public void CommandLineToConnectionString_MySql()
-        {
-            var result = ConnectionStringBuilder.CommandLineToConnectionString(Provider.MySql).ToList();
-            var expected = new Dictionary<CommandLineParam, ConnectionStringParam>
-            {
-                {CommandLineParam.server, ConnectionStringParam.Server},
-                {CommandLineParam.port, ConnectionStringParam.Port},
-                {CommandLineParam.database, ConnectionStringParam.Database},
-                {CommandLineParam.user, ConnectionStringParam.Uid},
-                {CommandLineParam.password, ConnectionStringParam.Pwd},
-                {CommandLineParam.integratedsecurity, ConnectionStringParam.IntegratedSecurity},
-            }.ToList();
-            Assert.Equal(expected, result);
-        }
-        [Fact]
-        public void CommandLineToConnectionString_PostGres()
-        {
-            var result = ConnectionStringBuilder.CommandLineToConnectionString(Provider.PostGreSQL).OrderBy(x => x.Key.Name).ToList();
-            var expected = new Dictionary<CommandLineParam, ConnectionStringParam>
-            {
-                {CommandLineParam.server, ConnectionStringParam.Server},
-                {CommandLineParam.port, ConnectionStringParam.Port},
-                {CommandLineParam.database, ConnectionStringParam.Database},
-                {CommandLineParam.user, ConnectionStringParam.UserId},
-                {CommandLineParam.password, ConnectionStringParam.Password},
-                {CommandLineParam.integratedsecurity, ConnectionStringParam.IntegratedSecurity},
-            }.OrderBy(x => x.Key.Name).ToList();
-            Assert.Equal(expected, result);
         }
     }
 }

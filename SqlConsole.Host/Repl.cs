@@ -51,6 +51,8 @@ namespace SqlConsole.Host
         string ReadQuery()
         {
             var sb = new StringBuilder();
+            Console.WriteLine();
+            Console.Write("> ");
             var readLine = _textReader.ReadLine();
             while (true)
             {
@@ -66,9 +68,11 @@ namespace SqlConsole.Host
                 if (readLine.EndsWith(";"))
                     break;
 
+                Console.Write("| ");
                 readLine = _textReader.ReadLine();
             }
             return sb.ToString();
         }
     }
+
 }

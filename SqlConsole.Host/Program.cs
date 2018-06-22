@@ -7,14 +7,13 @@ namespace SqlConsole.Host
     {
         static void Main(string[] args)
         {
-            Config config = null;
             try
             {
-                config = Config.Create(args);
+                var config = Config.Create(args);
 
                 if (config.Help)
                 {
-                    PrintUsage(config);
+                    PrintUsage();
                     return;
                 }
 
@@ -38,13 +37,13 @@ namespace SqlConsole.Host
             catch (ConnectionConfigException re)
             {
                 WriteLine(re.Message, ConsoleColor.Red);
-                PrintUsage(config);
+                PrintUsage();
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
                 Console.WriteLine();
-                PrintUsage(config);
+                PrintUsage();
             }
         }
 
@@ -71,7 +70,7 @@ namespace SqlConsole.Host
             }
         }
 
-        private static void PrintUsage(Config config)
+        private static void PrintUsage()
         {
             Console.WriteLine("usage: sql [query or file] [options]");
             Console.WriteLine("");
@@ -81,7 +80,7 @@ namespace SqlConsole.Host
             Console.WriteLine("");
             Console.WriteLine("      query or file: an inline SQL query, or the path to a file containing such query");
             Console.WriteLine("");
-            config?.PrintUsage();
+            Config.PrintUsage();
         }
     }
 }

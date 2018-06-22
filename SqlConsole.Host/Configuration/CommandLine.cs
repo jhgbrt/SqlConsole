@@ -1,43 +1,52 @@
+using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
+using static SqlConsole.Host.CommandLineParam;
 
 namespace SqlConsole.Host
 {
-    class CommandLine : Dictionary<CommandLineParam, Value>
+    class CommandLine : IEnumerable<KeyValuePair<CommandLineParam,string>>
     {
-        public Value? Server
+        private readonly Dictionary<CommandLineParam, string> _dictionary = new Dictionary<CommandLineParam, string>();
+        public string Server
         {
-            get { return TryGet(CommandLineParam.server); }
-            set { SetValue(CommandLineParam.server, value); }
-        }
-        public Value? Database => TryGet(CommandLineParam.database);
-        public Value? File => TryGet(CommandLineParam.file);
-
-        public Value? Port => TryGet(CommandLineParam.port);
-
-        public Value? User => TryGet(CommandLineParam.user);
-
-        public Value? ConnectionString => TryGet(CommandLineParam.connectionString);
-
-        public Value? IntegratedSecurity
-        {
-            get { return TryGet(CommandLineParam.integratedsecurity); }
-            set { SetValue(CommandLineParam.integratedsecurity, value); }
+            get => Get(server);
+            set => Set(server, value);
         }
 
-        private void SetValue(CommandLineParam key, Value? value)
+        public string Database => Get(database);
+        public string File => Get(file);
+        public string Port => Get(port);
+        public string User => Get(user);
+        public string ConnectionString => Get(connectionString);
+
+        public bool Contains(CommandLineParam key) => _dictionary.ContainsKey(key);
+
+        public string IntegratedSecurity
         {
-            Debug.Assert(value != null, "value != null");
-            this[key] = value.Value;
+            get => Get(integratedsecurity);
+            set => Set(integratedsecurity, value);
         }
 
-        private Value? TryGet(CommandLineParam commandLineParam)
+        public string Query
         {
-            Value v;
-            if (TryGetValue(commandLineParam, out v)) return v;
-            return null;
-
+            get => Get(query);
+            set => Set(query, value);
         }
+
+        public string this[CommandLineParam key]
+        {
+            get => Get(key);
+            set => Set(key, value);
+        } 
+
+        private void Set(CommandLineParam key, string value) => _dictionary[key] = value;
+
+        private string Get(CommandLineParam commandLineParam) => _dictionary.TryGetValue(commandLineParam, out var v) ? v : null;
+
+        public IEnumerator<KeyValuePair<CommandLineParam, string>> GetEnumerator() => _dictionary.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
         public override string ToString() => string.Join(",", this);
     }
 }

@@ -22,7 +22,7 @@ namespace SqlConsole.Host
                 case "db2": return DB2Factory.Instance;
                 case "oracle": return OracleClientFactory.Instance;
                 case "sqlite": return SqliteFactory.Instance;
-                default: throw new ConnectionConfigException($"Unsupported provider: '{providerName}'");
+                default: return SqlClientFactory.Instance;
             }
         }
 

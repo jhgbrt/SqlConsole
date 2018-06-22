@@ -55,10 +55,16 @@ namespace SqlConsole.UnitTests.Configuration
             Assert.Contains("Data Source=server", config.ConnectionString);
         }
         [Fact]
-        public void WhenUnknownCommandLineArgArgIsSet_ThenItIsTranslatedToConnectionStringArgument()
+        public void WhenUnknownCommandLineArgArgIsSet_ThenItIsIgnored()
         {
             var config = Config.Create(new[] { "--server=server", "--database=database", "--\"Some Name\"=\"Some Value\"" });
-            Assert.True(config.ConnectionString.Contains("Some Name=\"Some Value\""), config.ConnectionString);
+            Assert.DoesNotContain(config.ConnectionString, "Some Name=\"Some Value\"");
+        }
+        [Fact]
+        public void WhenConnectionStringIsPassed_ThenOtherParamsAreIgnored()
+        {
+            var config = Config.Create(new[] { "--server=server", "--database=database", "--connectionString=\"Some Value\"" });
+            Assert.Equal("Some Value", config.ConnectionString);
         }
     }
 }

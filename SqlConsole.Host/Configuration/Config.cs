@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Mono.Options;
-using static System.Configuration.ConfigurationManager;
+using static Mono.Options.OptionSet;
+using static SqlConsole.Host.CommandLineParam;
 using static SqlConsole.Host.ConnectionStringBuilder;
 
 namespace SqlConsole.Host
@@ -11,13 +12,13 @@ namespace SqlConsole.Host
     class Config
     {
         private readonly Provider _provider;
-        private readonly MyOptionSet _optionSet;
 
         public static Config Create(string[] args) => new Config(args);
 
-        public void PrintUsage()
+        public static void PrintUsage()
         {
-            _optionSet.WriteOptionDescriptions(Console.Out);
+            var options = All.Select(item => CreateOption(item.Prototype, item.Description, _ => { }));
+            new OptionSet().AddRange(options).WriteOptionDescriptions(Console.Out);
         }
 
         public string ProviderName => _provider.Name;
@@ -36,103 +37,36 @@ namespace SqlConsole.Host
 
         public bool OutputToFile => !string.IsNullOrEmpty(Output) && !string.IsNullOrEmpty(Query);
 
-        class MyOptionSet : OptionSet
+        CommandLine ToCommandLine(IEnumerable<string> arguments)
         {
-            public MyOptionSet(
-                IDictionary<CommandLineParam, ConnectionStringParam> dictionary, Action<CommandLineParam, string> action,
-                Func<string, string, bool> onUnknownOption)
-            {
-                var variableOptions =
-                    from kv in dictionary
-                    let cli = kv.Key
-                    let description = $"{cli.Description} (maps to {kv.Value})"
-                    select CreateOption(cli.Prototype, description, s => action(cli, s));
-                AddRange(variableOptions);
-                OnUnknownOption(onUnknownOption);
-            }
+            var commandLine = new CommandLine();
+            void SetCommandLineValue(CommandLineParam cl, string s) => commandLine[cl] = s.Trim('"');
+
+            var options =
+                from item in All
+                select CreateOption(item.Prototype, item.Description, s => SetCommandLineValue(item, s));
+
+            var remaining = new OptionSet().AddRange(options).Parse(arguments);
+
+            if (remaining.Any() && File.Exists(remaining[0]))
+                commandLine.Query = File.ReadAllText(remaining[0]);
+            else if (remaining.Any())
+                commandLine.Query = remaining[0];
+
+            return commandLine;
         }
 
-        private Config(string[] args)
+        private Config(IEnumerable<string> args)
         {
-            Provider? p = null;
-            new OptionSet { { "provider=", "", s => p = new Provider(s) } }.Parse(args);
-
-            var provider = p ?? Provider.Default;
-
-            string output = null;
-            bool scalar = false, nonquery = false, help = false;
-            var commandLine = new CommandLine();
-            var connectionString = new ConnectionString();
-
-            void SetCommandLineValue(CommandLineParam cl, string s) => commandLine[cl] = Value.From(s.Trim('"'));
-
-            bool OnUnknownOption(string name, string value)
-            {
-                connectionString[new ConnectionStringParam(name.Trim('"'))] = Value.From(value.Trim('"'));
-                return true;
-            }
-
-            var options = new MyOptionSet(
-                CommandLineToConnectionString(provider), 
-                SetCommandLineValue,
-                OnUnknownOption)
-            {
-                {
-                    "output=",
-                    "Path to output File. If none specified, output is written to the console.",
-                    s => output = s
-                },
-                {
-                    "scalar",
-                    "Interpret the query as a scalar result, i.e. a single value (of any type)",
-                    s => scalar = true
-                },
-                {
-                    "nonquery",
-                    "Run the query as a 'non-select' statement, i.e. INSERT, UPDATE, DELETE or a DDL statement. " +
-                    "Outputs the number of affected records of the last statement.",
-                    s => nonquery = true
-                },
-                {
-                    "provider=",
-                    "The db provider name.",
-                    s => provider = new Provider(s)
-                },
-                {
-                    "help",
-                    "Print this text.",
-                    s => help = true
-                }
-            };
-
-
-            var remaining = options.Parse(args);
-
-            Output = output;
-            Scalar = scalar;
-            NonQuery = nonquery;
-            Help = help;
+            var commandLine = ToCommandLine(args);
+            var provider = commandLine.Contains(providerName) ? new Provider(commandLine[providerName]) : Provider.Default;
+            Output = commandLine[output];
+            Scalar = commandLine[scalar] == scalar.Name;
+            NonQuery = commandLine[nonquery] == nonquery.Name;
+            Help = commandLine[help] == help.Name;
+            Query = commandLine.Query;
             _provider = provider;
-            _optionSet = options;
-
-            if (remaining.Any())
-            {
-                var queryOrFileName = remaining.First();
-                Query = File.Exists(queryOrFileName) ? File.ReadAllText(queryOrFileName) : queryOrFileName;
-            }
-
-            if (commandLine.Any() || connectionString.Any())
-            {
-                ConnectionString = GetConnectionString(_provider, commandLine, connectionString);
-            }
-            else
-            {
-                var settings = ConnectionStrings["Default"];
-                if (settings == null) 
-                    throw new ConnectionConfigException("No connection configuration found. Either provide command line parameters, or add a .config file with a connection string named 'Default'");
-                ConnectionString = settings.ConnectionString;
-                _provider = new Provider(settings.ProviderName);
-            }
+            ConnectionString = GetConnectionString(provider, commandLine);
         }
     }
 }
