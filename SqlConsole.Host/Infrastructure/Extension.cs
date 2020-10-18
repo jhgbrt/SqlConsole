@@ -88,7 +88,7 @@ namespace SqlConsole.Host
 
         public static IEnumerable<string> SplitOnGo(this string s)
         {
-            return ScriptSplitter.Split(s);
+            return new ScriptSplitter(s).Split();
         }
 
     }

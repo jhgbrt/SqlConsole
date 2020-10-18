@@ -5,38 +5,15 @@ using System.Reflection;
 
 namespace SqlConsole.Host
 {
-    struct CommandLineParam : IEquatable<CommandLineParam>
+    record CommandLineParam(string Name, string Description, CommandLineParam.CommandLineParamType Type)
     {
-        enum CommandLineParamType
+        internal enum CommandLineParamType
         {
             Boolean,
             String
         }
 
-        public readonly string Name;
-        public readonly string Description;
-        readonly CommandLineParamType _type;
-        public string Prototype => _type == CommandLineParamType.Boolean ? Name : Name + "=";
-
-        private CommandLineParam(string name, string description, CommandLineParamType type)
-            : this()
-        {
-            _type = type;
-            Name = name;
-            Description = description;
-        }
-
-        #region Equality
-        public bool Equals(CommandLineParam other) => string.Equals(Name, other.Name);
-
-        public override bool Equals(object obj) => !ReferenceEquals(null, obj) && (obj is CommandLineParam && Equals((CommandLineParam) obj));
-
-        public override int GetHashCode() => Name?.GetHashCode() ?? 0;
-
-        public static bool operator ==(CommandLineParam left, CommandLineParam right) => left.Equals(right);
-
-        public static bool operator !=(CommandLineParam left, CommandLineParam right) => !(left == right);
-        #endregion
+        public string Prototype => Type == CommandLineParamType.Boolean ? Name : Name + "=";
 
         public override string ToString() => Name;
 
@@ -46,13 +23,13 @@ namespace SqlConsole.Host
         public static readonly CommandLineParam database = String(nameof(database), "The database instance");
         public static readonly CommandLineParam user = String(nameof(user), "User name (in case no integrated security is used)");
         public static readonly CommandLineParam password = String(nameof(password), "Password (in case no integrated security is used)");
-        public static readonly CommandLineParam integratedsecurity = String(nameof(integratedsecurity), "use windows integrated security (or not)");
+        public static readonly CommandLineParam integratedSecurity = String(nameof(integratedSecurity), "use windows integrated security (or not)");
         public static readonly CommandLineParam connectionString = String(nameof(connectionString), "a full-blown connection string. Other parameters are ignored.");
         public static readonly CommandLineParam file = String(nameof(file), "The db File, for providers that attach directly to file");
         public static readonly CommandLineParam output = String(nameof(output), "Path to output File. If none specified, output is written to the console.");
         public static readonly CommandLineParam scalar = Boolean(nameof(scalar), "Interpret the query as a scalar result, i.e. a single value (of any type)");
         public static readonly CommandLineParam nonquery = Boolean(nameof(nonquery), "Run the query as a 'non-select' statement, i.e. INSERT, UPDATE, DELETE or a DDL statement. Outputs the number of affected records of the last statement.");
-        public static readonly CommandLineParam providerName = String(nameof(providerName), "The db provider name.");
+        public static readonly CommandLineParam provider = String(nameof(provider), "The db provider name.");
         public static readonly CommandLineParam help = Boolean(nameof(help), "Print help text");
         public static readonly CommandLineParam query = String(nameof(query), "The query");
         // ReSharper restore InconsistentNaming
@@ -60,7 +37,7 @@ namespace SqlConsole.Host
         public static IEnumerable<CommandLineParam> All => 
             typeof(CommandLineParam).GetFields(BindingFlags.Static|BindingFlags.Public)
             .Where(f => f.FieldType == typeof(CommandLineParam))
-            .Select(f => (CommandLineParam)f.GetValue(null));
+            .Select(f => (CommandLineParam)f.GetValue(null)!)!;
 
         private static CommandLineParam Boolean(string name, string description) => new CommandLineParam(name, description, CommandLineParamType.Boolean);
         private static CommandLineParam String(string name, string description) => new CommandLineParam(name, description, CommandLineParamType.String);

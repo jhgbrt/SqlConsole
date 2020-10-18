@@ -1,32 +1,34 @@
+using IBM.Data.DB2.Core;
+using Microsoft.Data.Sqlite;
+using MySql.Data.MySqlClient;
+using Net.Code.ADONet;
+using Npgsql;
+using Oracle.ManagedDataAccess.Client;
+using System.Collections.Generic;
+using System.Data.Common;
+using Microsoft.Data.SqlClient;
+using System.Linq;
+using System.Reflection;
+
 namespace SqlConsole.Host
 {
-    struct Provider
+    record Provider(string Name, DbProviderFactory Factory, DbConfig DbConfig)
     {
-         public readonly string Name;
 
-         public Provider(string name)
-            : this()
-        {
-            Name = name;
-        }
+        public override string ToString() => Name;
+        public static readonly Provider None = new Provider(string.Empty, null, null);
+        public static readonly Provider SqlServer = new Provider("sqlserver", SqlClientFactory.Instance, DbConfig.Default);
+        public static readonly Provider SqLite = new Provider("sqlite", SqliteFactory.Instance, DbConfig.Default);
+        public static readonly Provider Oracle = new Provider("oracle", OracleClientFactory.Instance, DbConfig.Oracle);
+        public static readonly Provider IbmDB2 = new Provider("db2", DB2Factory.Instance, DbConfig.Default);
+        public static readonly Provider MySql = new Provider("mysql", MySqlClientFactory.Instance, DbConfig.Default);
+        public static readonly Provider PostGreSQL = new Provider("postgres",  NpgsqlFactory.Instance, DbConfig.PostGreSQL);
 
-        #region Equality
-        private bool Equals(Provider other) => string.Equals(Name, other.Name);
-        public override bool Equals(object obj) => !ReferenceEquals(null, obj) && (obj is Provider && Equals((Provider) obj));
-        public override int GetHashCode() => Name?.GetHashCode() ?? 0;
-        public static bool operator ==(Provider left, Provider right) => left.Equals(right);
-        public static bool operator !=(Provider left, Provider right) => !(left == right);
-        #endregion
+        static readonly IDictionary<string, Provider> All = typeof(Provider).GetFields(BindingFlags.Static | BindingFlags.Public)
+            .Where(f => f.FieldType == typeof(Provider))
+            .Select(f => (Provider)f.GetValue(null)!)
+            .ToDictionary(p => p.Name);
 
-        public override string ToString() => Name ?? "default";
-
-        public static readonly Provider Sqlserver = new Provider("sqlserver");
-        public static readonly Provider SqlCompact = new Provider("sqlce");
-        public static readonly Provider SqLite = new Provider("sqlite");
-        public static readonly Provider Oracle = new Provider("oracle");
-        public static readonly Provider IbmDB2 = new Provider("db2");
-        public static readonly Provider MySql = new Provider("mysql");
-        public static readonly Provider PostGreSQL = new Provider("postgres");
-        public static readonly Provider Default = new Provider(null);
+        internal static Provider Get(string name) => All[name];
     }
 }

@@ -11,48 +11,30 @@ namespace SqlConsole.UnitTests.Configuration
         [Fact]
         public void DefaultProvider_EmptyCommandLine_Throws()
         {
-            var provider = Provider.Default;
+            var provider = Provider.SqlServer;
             var commandLine = new CommandLine();
             Assert.Throws<ConnectionConfigException>(() => GetConnectionString(provider, commandLine));
         }
         [Fact]
         public void DefaultProvider_invalidCommandLine_Throws()
         {
-            var provider = Provider.Default;
+            var provider = Provider.SqlServer;
             var commandLine = new CommandLine {[user] = "user"};
             Assert.Throws<ConnectionConfigException>(() => GetConnectionString(provider, commandLine));
         }
 
         [Fact]
-        public void DefaultProvider()
-        {
-            var provider = Provider.Default;
-            var commandLine = new CommandLine
-            {
-                [server] = "server",
-                [database] = "database",
-                [user] = "user",
-                [password] = "password",
-            };
-            var cb = GetConnectionStringBuilder(provider, commandLine);
-            Assert.Equal("server", cb["Data Source"]);
-            Assert.Equal("database", cb["Initial Catalog"]);
-            Assert.Equal("user", cb["User Id"]);
-            Assert.Equal("password", cb["Password"]);
-        }
-
-        [Fact]
         public void SqlServerProvider()
         {
-            var provider = Provider.Sqlserver;
             var commandLine = new CommandLine
             {
+                [provider] = "sqlserver",
                 [server] = "server",
                 [database] = "database",
                 [user] = "user",
                 [password] = "password",
             };
-            var cb = GetConnectionStringBuilder(provider, commandLine);
+            var cb = GetConnectionStringBuilder(Provider.SqlServer, commandLine);
             Assert.Equal("server", cb["Data Source"]);
             Assert.Equal("database", cb["Initial Catalog"]);
             Assert.Equal("user", cb["User Id"]);
@@ -62,15 +44,15 @@ namespace SqlConsole.UnitTests.Configuration
         [Fact]
         public void OracleProvider()
         {
-            var provider = Provider.Oracle;
             var commandLine = new CommandLine
             {
+                [provider] = "oracle",
                 [server] = "server",
                 [database] = "database",
                 [user] = "user",
                 [password] = "password",
             };
-            var cb = GetConnectionStringBuilder(provider, commandLine);
+            var cb = GetConnectionStringBuilder(Provider.Oracle, commandLine);
             Assert.Equal("server", cb["Data Source"]);
             Assert.Equal("database", cb["Initial Catalog"]);
             Assert.Equal("user", cb["User Id"]);
@@ -79,16 +61,16 @@ namespace SqlConsole.UnitTests.Configuration
         [Fact]
         public void DB2Provider()
         {
-            var provider = Provider.IbmDB2;
             var commandLine = new CommandLine
             {
+                [provider] = "db2",
                 [server] = "server",
                 [port] = "1234",
                 [database] = "database",
                 [user] = "user",
                 [password] = "password",
             };
-            var cb = GetConnectionStringBuilder(provider, commandLine);
+            var cb = GetConnectionStringBuilder(Provider.IbmDB2, commandLine);
             Assert.Equal("server:1234", cb["Server"]);
             Assert.Equal("database", cb["Database"]);
             Assert.Equal("user", cb["Uid"]);
@@ -97,15 +79,15 @@ namespace SqlConsole.UnitTests.Configuration
         [Fact]
         public void MySqlProvider()
         {
-            var provider = Provider.IbmDB2;
             var commandLine = new CommandLine
             {
+                [provider] = "mysql",
                 [server] = "server",
                 [database] = "database",
                 [user] = "user",
                 [password] = "password",
             };
-            var cb = GetConnectionStringBuilder(provider, commandLine);
+            var cb = GetConnectionStringBuilder(Provider.MySql, commandLine);
             Assert.Equal("server", cb["Server"]);
             Assert.Equal("database", cb["Database"]);
             Assert.Equal("user", cb["Uid"]);
@@ -115,27 +97,13 @@ namespace SqlConsole.UnitTests.Configuration
         [Fact]
         public void SqLiteProvider()
         {
-            var provider = Provider.SqLite;
             var commandLine = new CommandLine
             {
+                [provider] = "sqlite",
                 [file] = "file",
                 [password] = "password",
             };
-            var cb = GetConnectionStringBuilder(provider, commandLine);
-            Assert.Equal("file", cb["Data Source"]);
-            Assert.Equal("password", cb["Password"]);
-        }
-
-        [Fact]
-        public void SqCompactProvider()
-        {
-            var provider = Provider.SqlCompact;
-            var commandLine = new CommandLine
-            {
-                [file] = "file",
-                [password] = "password",
-            };
-            var cb = GetConnectionStringBuilder(provider, commandLine);
+            var cb = GetConnectionStringBuilder(Provider.SqLite, commandLine);
             Assert.Equal("file", cb["Data Source"]);
             Assert.Equal("password", cb["Password"]);
         }

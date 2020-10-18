@@ -1,15 +1,17 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using SqlConsole.Host.Infrastructure;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace SqlConsole.UnitTests.Infrastructure
 {
     static class Script
     {
-        public static List<string> ParseScripts(string script)
+        public static List<string> ParseScripts(string script, Action<string> log)
         {
-            return ScriptSplitter.Split(script).ToList();
+            return new ScriptSplitter(script, log).Split().ToList();
         }
     }
 
@@ -18,9 +20,16 @@ namespace SqlConsole.UnitTests.Infrastructure
     /// </summary>
     public class ScriptHelperTests
     {
+        ITestOutputHelper _output;
+        public ScriptHelperTests(ITestOutputHelper output)
+        {
+            _output = output;
+        }
         [Theory]
         [InlineData("")]
         [InlineData("GO\r\n")]
+        [InlineData("GX", "GX")]
+        [InlineData("GX test", "GX test")]
         [InlineData("GO\r\nGO")]
         [InlineData("// abc\r\n", "// abc\r\n")]
         [InlineData("-- abc", "-- abc")]
@@ -39,8 +48,76 @@ namespace SqlConsole.UnitTests.Infrastructure
         [InlineData("foo\r\nGO\r\nfoo_go_bar\r\nGO\r\n", "foo\r\n", "foo_go_bar\r\n")]
         public void Tests(string input, params string[] expected)
         {
-            var result = Script.ParseScripts(input).ToArray();
+            var result = Script.ParseScripts(input, s => _output.WriteLine(s)).ToArray();
             Assert.Equal(expected, result);
+        }
+
+
+    }
+
+    record MyRecord(Func<string, MyRecord> SomeAction, string Name, ITestOutputHelper Output)
+    {
+        public MyRecord(string name, ITestOutputHelper helper) : this(null, name, helper)
+        {
+            SomeAction = Log1;
+        }
+        MyRecord Log1(string s)
+        {
+            Output.WriteLine(s + " from Log1: " + SomeAction.Method.Name);
+            return this with { SomeAction = Log2 };
+        }
+        MyRecord Log2(string s)
+        {
+            Output.WriteLine(s + " from Log2: " + SomeAction.Method.Name);
+            return this;
+        }
+    }
+    record MyRecord1(string Name, ITestOutputHelper Output)
+    {
+        public MyRecord1(ITestOutputHelper helper) : this(null, helper)
+        {
+            Name = "Initial Name";
+        }
+        public MyRecord1 Test1(string s)
+        {
+            Output.WriteLine(s + " from Test1");
+            return this with { Name = "Name set in Test1"};
+        }
+        public MyRecord1 Test2(string s)
+        {
+            Output.WriteLine(s + " from Test2");
+            return this;
+        }
+    }
+    public class CSharpRecordTests
+    {
+        ITestOutputHelper _output;
+
+        public CSharpRecordTests(ITestOutputHelper output)
+        {
+            _output = output;
+        }
+        [Fact]
+        public void TestRecordFeatures1()
+        {
+            var r = new MyRecord1(_output);
+            _output.WriteLine(r.ToString());
+            r = r.Test1("test.1.");
+            _output.WriteLine(r.ToString());
+            r = r.Test2("test.2.");
+            _output.WriteLine(r.ToString());
+            r = r.Test2("test.3.");
+            _output.WriteLine(r.ToString());
+        }
+
+        [Fact]
+        public void TestRecordFeatures2()
+        {
+            var r = new MyRecord("test", _output);
+            _output.WriteLine(r.ToString());
+            r = r.SomeAction("test.1.");
+            r = r.SomeAction("test.2.");
+            r = r.SomeAction("test.3.");
         }
     }
 }

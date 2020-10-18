@@ -13,6 +13,7 @@ namespace SqlConsole.Host
             set => Set(server, value);
         }
 
+        public string Provider => Get(provider);
         public string Database => Get(database);
         public string File => Get(file);
         public string Port => Get(port);
@@ -23,8 +24,8 @@ namespace SqlConsole.Host
 
         public string IntegratedSecurity
         {
-            get => Get(integratedsecurity);
-            set => Set(integratedsecurity, value);
+            get => Get(integratedSecurity);
+            set => Set(integratedSecurity, value);
         }
 
         public string Query
@@ -41,7 +42,7 @@ namespace SqlConsole.Host
 
         private void Set(CommandLineParam key, string value) => _dictionary[key] = value;
 
-        private string Get(CommandLineParam commandLineParam) => _dictionary.TryGetValue(commandLineParam, out var v) ? v : null;
+        private string Get(CommandLineParam commandLineParam) => _dictionary.TryGetValue(commandLineParam, out var v) ? v : string.Empty;
 
         public IEnumerator<KeyValuePair<CommandLineParam, string>> GetEnumerator() => _dictionary.GetEnumerator();
 

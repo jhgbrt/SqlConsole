@@ -17,31 +17,33 @@ namespace SqlConsole.Host
                     return;
                 }
 
-                Console.WriteLine(config.ConnectionString);
-
                 var csb = new DbConnectionStringBuilder {ConnectionString = config.ConnectionString}.WithoutSensitiveInformation();
                 Console.WriteLine(csb.ConnectionString);
 
-                using (var queryHandler = new QueryHandlerFactory(config).Create())
+                using var queryHandler = new QueryHandlerFactory(config).Create();
+                
+                if (!string.IsNullOrEmpty(config.Query))
                 {
-                    if (!string.IsNullOrEmpty(config.Query))
-                    {
-                        queryHandler.Execute(config.Query);
-                    }
-                    else
-                    {
-                        new Repl(queryHandler).Enter();
-                    }
+                    queryHandler.Execute(config.Query);
+                }
+                else
+                {
+                    new Repl(queryHandler).Enter();
                 }
             }
-            catch (ConnectionConfigException re)
+            catch (ConnectionConfigException e) 
             {
-                WriteLine(re.Message, ConsoleColor.Red);
+                WriteLine(e.Message, ConsoleColor.Red);
+                PrintUsage();
+            }
+            catch (DbException e)
+            {
+                WriteLine(e.Message, ConsoleColor.Yellow);
                 PrintUsage();
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                WriteLine(e.ToString(), ConsoleColor.Red);
                 Console.WriteLine();
                 PrintUsage();
             }

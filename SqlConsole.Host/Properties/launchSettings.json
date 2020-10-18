@@ -2,7 +2,7 @@
   "profiles": {
     "SqlConsole.Host": {
       "commandName": "Project",
-      "commandLineArgs": "--server=(localdb)\\mssqllocaldb --database=testdb --provider=sqlserver"
+      "commandLineArgs": "--provider=sqlite --file=\":memory:\""
     }
   }
 }

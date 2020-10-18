@@ -11,8 +11,6 @@ namespace SqlConsole.Host
 {
     class Config
     {
-        private readonly Provider _provider;
-
         public static Config Create(string[] args) => new Config(args);
 
         public static void PrintUsage()
@@ -21,7 +19,7 @@ namespace SqlConsole.Host
             new OptionSet().AddRange(options).WriteOptionDescriptions(Console.Out);
         }
 
-        public string ProviderName => _provider.Name;
+        public Provider Provider { get; }
 
         public string ConnectionString { get; }
 
@@ -40,18 +38,16 @@ namespace SqlConsole.Host
         CommandLine ToCommandLine(IEnumerable<string> arguments)
         {
             var commandLine = new CommandLine();
-            void SetCommandLineValue(CommandLineParam cl, string s) => commandLine[cl] = s.Trim('"');
-
             var options =
                 from item in All
-                select CreateOption(item.Prototype, item.Description, s => SetCommandLineValue(item, s));
+                select CreateOption(item.Prototype, item.Description, s => commandLine[item] = s.Trim('"'));
 
-            var remaining = new OptionSet().AddRange(options).Parse(arguments);
-
-            if (remaining.Any() && File.Exists(remaining[0]))
-                commandLine.Query = File.ReadAllText(remaining[0]);
-            else if (remaining.Any())
-                commandLine.Query = remaining[0];
+            commandLine.Query = new OptionSet().AddRange(options).Parse(arguments) switch
+            {
+                List<string> l when l.Any() && File.Exists(l[0]) => File.ReadAllText(l[0]),
+                List<string> l when l.Any() => l[0],
+                _ => string.Empty
+            };
 
             return commandLine;
         }
@@ -59,14 +55,13 @@ namespace SqlConsole.Host
         private Config(IEnumerable<string> args)
         {
             var commandLine = ToCommandLine(args);
-            var provider = commandLine.Contains(providerName) ? new Provider(commandLine[providerName]) : Provider.Default;
+            Provider = Provider.Get(commandLine[provider]);
             Output = commandLine[output];
             Scalar = commandLine[scalar] == scalar.Name;
             NonQuery = commandLine[nonquery] == nonquery.Name;
             Help = commandLine[help] == help.Name;
             Query = commandLine.Query;
-            _provider = provider;
-            ConnectionString = GetConnectionString(provider, commandLine);
+            ConnectionString = GetConnectionString(Provider, commandLine);
         }
     }
 }

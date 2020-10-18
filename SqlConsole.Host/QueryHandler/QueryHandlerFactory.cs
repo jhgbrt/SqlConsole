@@ -18,8 +18,9 @@ namespace SqlConsole.Host
 
         public IQueryHandler Create()
         {
-            var dbconfig = _config.GetDbConfig();
-            var factory = _config.GetFactory();
+            var provider = _config.Provider;
+            var dbconfig = provider.DbConfig;
+            var factory = provider.Factory;
             var writer = _config.OutputToFile ? new StreamWriter(_config.Output) : Console.Out;
             
             var db = new Db(_config.ConnectionString, dbconfig, factory);

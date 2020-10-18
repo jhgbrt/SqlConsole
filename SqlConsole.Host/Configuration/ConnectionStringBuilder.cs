@@ -50,22 +50,17 @@ namespace SqlConsole.Host
 
         private static readonly ILookup<Provider,(Provider provider, CommandLineParam commandLine, ConnectionStringParam connectionString)> ParameterMappings = new []
         {
-            (Provider.Default, server, DataSource),
-            (Provider.Default, database, InitialCatalog),
-            (Provider.Default, user, UserId),
-            (Provider.Default, integratedsecurity, IntegratedSecurity),
-            (Provider.Default, password, Password),
-            (Provider.Sqlserver, server, DataSource),
-            (Provider.Sqlserver, database, InitialCatalog),
-            (Provider.Sqlserver, user, UserId),
-            (Provider.Sqlserver, password, Password),
-            (Provider.Sqlserver, integratedsecurity, IntegratedSecurity),
-            (Provider.Sqlserver, file, Attachdbfilename),
+            (Provider.SqlServer, server, DataSource),
+            (Provider.SqlServer, database, InitialCatalog),
+            (Provider.SqlServer, user, UserId),
+            (Provider.SqlServer, password, Password),
+            (Provider.SqlServer, integratedSecurity, IntegratedSecurity),
+            (Provider.SqlServer, file, Attachdbfilename),
             (Provider.Oracle, server, DataSource),
             (Provider.Oracle, database, InitialCatalog),
             (Provider.Oracle, user, UserId),
             (Provider.Oracle, password, Password),
-            (Provider.Oracle, integratedsecurity, IntegratedSecurity),
+            (Provider.Oracle, integratedSecurity, IntegratedSecurity),
             (Provider.IbmDB2, server, Server),
             (Provider.IbmDB2, port, Port),
             (Provider.IbmDB2, database, Database),
@@ -76,28 +71,28 @@ namespace SqlConsole.Host
             (Provider.MySql, database, Database),
             (Provider.MySql, user, Uid),
             (Provider.MySql, password, Pwd),
-            (Provider.MySql, integratedsecurity, IntegratedSecurity),
+            (Provider.MySql, integratedSecurity, IntegratedSecurity),
             (Provider.PostGreSQL, port, Port),
             (Provider.PostGreSQL, server, Server),
             (Provider.PostGreSQL, database, Database),
             (Provider.PostGreSQL, user, UserId),
             (Provider.PostGreSQL, password, Password),
-            (Provider.PostGreSQL, integratedsecurity, IntegratedSecurity),
-            (Provider.SqlCompact, file, DataSource),
-            (Provider.SqlCompact, password, Password),
+            (Provider.PostGreSQL, integratedSecurity, IntegratedSecurity),
             (Provider.SqLite, file, DataSource),
             (Provider.SqLite, password, Password)
         }.ToLookup(p => p.Item1);
 
         private static readonly RuleList Rules = new RuleList
         {
-            {ServerIsRequired, Provider.Default, Provider.Oracle, Provider.MySql, Provider.PostGreSQL},
-            {ServerOrFileIsRequired, Provider.Sqlserver},
-            {DatabaseIsRequired, Provider.Default, Provider.Sqlserver, Provider.Oracle, Provider.MySql, Provider.PostGreSQL},
-            {SetIntegratedSecurityIfNoUser, Provider.Sqlserver, Provider.Oracle, Provider.MySql, Provider.Default},
+            {ProviderIsRequired, Provider.None},
+            {ServerIsRequired, Provider.Oracle, Provider.MySql, Provider.PostGreSQL},
+            {ServerOrFileIsRequired, Provider.SqlServer},
+            {DatabaseIsRequired, Provider.SqlServer, Provider.Oracle, Provider.MySql, Provider.PostGreSQL},
+            {SetIntegratedSecurityIfNoUser, Provider.SqlServer, Provider.Oracle, Provider.MySql},
             {AttachPortToServer, Provider.IbmDB2}
         };
 
+        private static bool ProviderIsRequired(CommandLine commandLine) => !string.IsNullOrEmpty(commandLine.Provider);
         private static bool ServerIsRequired(CommandLine commandLine) => !string.IsNullOrEmpty(commandLine.Server);
         private static bool ServerOrFileIsRequired(CommandLine commandLine) => !string.IsNullOrEmpty(commandLine.Server) || !string.IsNullOrEmpty(commandLine.File);
         private static bool DatabaseIsRequired(CommandLine commandLine) => !string.IsNullOrEmpty(commandLine.Database);
@@ -133,22 +128,18 @@ namespace SqlConsole.Host
 
             public override string ToString() => string.Join(Environment.NewLine, this);
 
-            public RuleList this[Provider provider] => new RuleList(this.Where(r => r.Provider == provider));
+            public RuleList this[Provider provider] 
+                => new RuleList(this.Where(r => r.Provider == provider));
         }
 
-        class Rule
+        record Rule(Provider Provider, Func<CommandLine, bool> Apply, string Description)
         {
-            public Rule(Provider provider, Func<CommandLine, bool> apply)
+            public Rule(Provider provider, Func<CommandLine, bool> apply) : this(provider, apply, string.Empty)
             {
                 var sentence = string.Join(" ", apply.Method.Name.BookTitleToSentence());
                 Description = $"{sentence} for provider {provider}";
-                Provider = provider;
-                Apply = apply;
             }
 
-            public Provider Provider { get; }
-            public Func<CommandLine, bool> Apply { get; }
-            public string Description { get; }
             public override string ToString() => Description;
         }
         #endregion

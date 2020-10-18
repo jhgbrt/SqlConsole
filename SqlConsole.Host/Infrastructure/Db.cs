@@ -565,7 +565,6 @@ namespace Net.Code.ADONet
         }
 
         internal IMappingConvention MappingConvention => Config.MappingConvention;
-        public string ProviderName => Config.ProviderName;
         private readonly string _connectionString;
         private Lazy<IDbConnection> _connection;
         private readonly DbProviderFactory _connectionFactory;
@@ -653,11 +652,10 @@ namespace Net.Code.ADONet
 
     public class DbConfig
     {
-        internal DbConfig(Action<IDbCommand> prepareCommand, IMappingConvention convention, string providerName)
+        internal DbConfig(Action<IDbCommand> prepareCommand, IMappingConvention convention)
         {
             PrepareCommand = prepareCommand;
             MappingConvention = convention;
-            ProviderName = providerName;
         }
 
         public Action<IDbCommand> PrepareCommand
@@ -670,28 +668,22 @@ namespace Net.Code.ADONet
             get;
         }
 
-        public string ProviderName
-        {
-            get;
-        }
-
-        public static readonly DbConfig Default = Create("sqlserver");
         public static DbConfig FromProviderName(string providerName)
         {
             if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("oracle"))
-                return Oracle(providerName);
+                return Oracle;
             if (string.Equals(providerName, "postgres"))
-                return PostGreSQL(providerName);
-            return Create(providerName);
+                return PostGreSQL;
+            return Default;
         }
 
         // By default, the Oracle driver does not support binding parameters by name;
         // one has to set the BindByName property on the OracleDbCommand.
         // Mapping: 
         // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
-        public static DbConfig Oracle(string providerName) => new DbConfig(SetBindByName, ADONet.MappingConvention.OracleStyle, providerName);
-        public static DbConfig PostGreSQL(string providerName) => new DbConfig(NoOp, ADONet.MappingConvention.UnderScores, providerName);
-        public static DbConfig Create(string providerName) => new DbConfig(NoOp, ADONet.MappingConvention.Default, providerName);
+        public static DbConfig Oracle => new DbConfig(SetBindByName, ADONet.MappingConvention.OracleStyle);
+        public static DbConfig PostGreSQL => new DbConfig(NoOp, ADONet.MappingConvention.UnderScores);
+        public static DbConfig Default => new DbConfig(NoOp, ADONet.MappingConvention.Default);
         private static void SetBindByName(dynamic c) => c.BindByName = true;
         private static void NoOp(dynamic c)
         {
@@ -964,14 +956,6 @@ namespace Net.Code.ADONet
         /// The ADO.Net connection string
         /// </summary>
         string ConnectionString
-        {
-            get;
-        }
-
-        /// <summary>
-        /// The ADO.Net ProviderName for this connection
-        /// </summary>
-        string ProviderName
         {
             get;
         }
@@ -1447,51 +1431,3 @@ namespace Net.Code.ADONet.Extensions.Experimental
     }
 }
 
-namespace Net.Code.ADONet.Extensions.SqlClient
-{
-    public static class DbExtensions
-    {
-        /// <summary>
-        /// Adds a table-valued parameter. Only supported on SQL Server (System.Data.SqlClient)
-        /// </summary>
-        /// <typeparam name = "T"></typeparam>
-        /// <param name = "commandBuilder"></param>
-        /// <param name = "name">parameter name</param>
-        /// <param name = "values">list of values</param>
-        /// <param name = "udtTypeName">name of the user-defined table type</param>
-        public static CommandBuilder WithParameter<T>(this CommandBuilder commandBuilder, string name, IEnumerable<T> values, string udtTypeName)
-        {
-            var dataTable = values.ToDataTable();
-            var p = new SqlParameter(name, SqlDbType.Structured)
-            { TypeName = udtTypeName, Value = dataTable };
-            return commandBuilder.WithParameter(p);
-        }
-
-        /// <summary>
-        /// Assumes one to one mapping between 
-        /// - tablename and typename 
-        /// - property names and column names
-        /// </summary>
-        /// <typeparam name = "T"></typeparam>
-        /// <param name = "db"></param>
-        /// <param name = "items"></param>
-        public static void BulkCopy<T>(this IDb db, IEnumerable<T> items)
-        {
-            // NOTE this snippet also works in NETSTANDARD if you take System.Data.SqlClient as a dependency
-            using (var bcp = new SqlBulkCopy(db.ConnectionString))
-            {
-                bcp.DestinationTableName = typeof(T).Name;
-                // by default, SqlBulkCopy assumes columns in the database 
-                // are in same order as the columns of the source data reader
-                // => add explicit column mappings by name
-                foreach (var p in typeof(T).GetProperties())
-                {
-                    bcp.ColumnMappings.Add(p.Name, p.Name);
-                }
-
-                var datareader = items.AsDataReader();
-                bcp.WriteToServer((DbDataReader)datareader);
-            }
-        }
-    }
-}

@@ -46,7 +46,7 @@ namespace SqlConsole.UnitTests.Configuration
         [Fact]
         public void IntegratedSecurity_WhenSet_SetsValue()
         {
-            var commandLine = Test(_value, integratedsecurity);
+            var commandLine = Test(_value, integratedSecurity);
             Assert.Equal(_value, commandLine.IntegratedSecurity);
         }
         [Fact]

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.IO;
 using System.Text;
-using static System.StringComparison;
 
 namespace SqlConsole.Host
 {
@@ -20,58 +19,76 @@ namespace SqlConsole.Host
 
         public void Enter()
         {
-            foreach (var query in ReadQueries())
+            foreach (var command in ReadCommands())
             {
-                if (string.IsNullOrEmpty(query) 
-                    || query.StartsWith("quit", OrdinalIgnoreCase) 
-                    || query.StartsWith("exit", OrdinalIgnoreCase))
-                    return;
-
-                try
+                if (command is StopExecution)
                 {
-                    Console.WriteLine();
-                    _queryHandler.Execute(query);
+                    break;
                 }
-                catch (DbException e)
+                else if (command is SqlQuery q)
                 {
-                    _textWriter.WriteLine(e.Message);
+                    try
+                    {
+                        Console.WriteLine();
+                        _queryHandler.Execute(q.Sql);
+                    }
+                    catch (DbException e)
+                    {
+                        _textWriter.WriteLine(e.Message);
+                    }
                 }
             }
         }
 
-        IEnumerable<string> ReadQueries()
+        interface IReplCommand { }
+        record SqlQuery(string Sql) : IReplCommand;
+        record StopExecution() : IReplCommand;
+
+        IEnumerable<IReplCommand> ReadCommands()
         {
             while (true)
             {
-                var query = ReadQuery();
+                var query = ReadCommand();
                 yield return query;
             }
         }
 
-        string ReadQuery()
+        class CommandBuilder
         {
-            var sb = new StringBuilder();
+            StringBuilder _query = new StringBuilder();
+
+            public CommandBuilder AppendLine(string line)
+            {
+                (IsComplete, _query, Command) = line switch
+                {
+                    "GO" => (true, _query, new SqlQuery(_query.ToString()) as IReplCommand),
+                    "/" => (true, _query, new SqlQuery(_query.ToString())),
+                    "exit" => (true, _query.Append(line), new StopExecution()),
+                    "quit" => (true, _query.Append(line), new StopExecution()),
+                    string s when s.EndsWith(";") => (true, _query, new SqlQuery(_query.AppendLine(s).ToString())),
+                    string s => (false, _query.AppendLine(s), null)
+                };
+
+                return this;
+            }
+
+            public bool IsComplete { get; set; }
+
+            internal IReplCommand? Command { get; private set; }
+        }
+
+        IReplCommand ReadCommand()
+        {
+            var cb = new CommandBuilder();
             Console.WriteLine();
             Console.Write("> ");
-            var readLine = _textReader.ReadLine();
             while (true)
             {
-                if (string.IsNullOrWhiteSpace(readLine))
-                    break;
-                if (readLine == "GO")
-                    break;
-                if (readLine == "/")
-                    break;
-
-                sb.AppendLine(readLine);
-
-                if (readLine.EndsWith(";"))
-                    break;
-
+                cb.AppendLine(_textReader.ReadLine()!);
+                if (cb.IsComplete) break;
                 Console.Write("| ");
-                readLine = _textReader.ReadLine();
             }
-            return sb.ToString();
+            return cb.Command!;
         }
     }
 
