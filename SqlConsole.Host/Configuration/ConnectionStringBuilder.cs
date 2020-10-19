@@ -88,6 +88,7 @@ namespace SqlConsole.Host
             {ServerIsRequired, Provider.Oracle, Provider.MySql, Provider.PostGreSQL},
             {ServerOrFileIsRequired, Provider.SqlServer},
             {DatabaseIsRequired, Provider.SqlServer, Provider.Oracle, Provider.MySql, Provider.PostGreSQL},
+            {FileIsRequired, Provider.SqLite},
             {SetIntegratedSecurityIfNoUser, Provider.SqlServer, Provider.Oracle, Provider.MySql},
             {AttachPortToServer, Provider.IbmDB2}
         };
@@ -95,6 +96,7 @@ namespace SqlConsole.Host
         private static bool ProviderIsRequired(CommandLine commandLine) => !string.IsNullOrEmpty(commandLine.Provider);
         private static bool ServerIsRequired(CommandLine commandLine) => !string.IsNullOrEmpty(commandLine.Server);
         private static bool ServerOrFileIsRequired(CommandLine commandLine) => !string.IsNullOrEmpty(commandLine.Server) || !string.IsNullOrEmpty(commandLine.File);
+        private static bool FileIsRequired(CommandLine commandLine) => !string.IsNullOrEmpty(commandLine.File);
         private static bool DatabaseIsRequired(CommandLine commandLine) => !string.IsNullOrEmpty(commandLine.Database);
         private static bool SetIntegratedSecurityIfNoUser(CommandLine commandLine)
         {
