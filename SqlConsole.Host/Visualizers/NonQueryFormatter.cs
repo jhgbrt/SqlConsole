@@ -6,10 +6,17 @@ namespace SqlConsole.Host
     {
         public IEnumerable<string> Format(int result)
         {
-            var r = result;
-            if (r < 0) yield break;
-            var s = r == 1 ? "" : "s";
-            yield return $"{result} row{s} affected";
+            switch (result)
+            {
+                case < 0:
+                    yield break;
+                case 1:
+                    yield return "1 row affected";
+                    break;
+                default:
+                    yield return $"{result} rows affected";
+                    break;
+            }
         }
     }
 }

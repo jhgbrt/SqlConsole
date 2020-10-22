@@ -8,19 +8,20 @@ namespace SqlConsole.Host
     {
         public IEnumerable<string> Format(DataTable dt)
         {
-            if (dt.Rows.Count == 1 && dt.Columns.Count == 1)
+            var columnNames = dt.Columns.OfType<DataColumn>().Select(column => "\"" + column.ColumnName.Replace("\"", "\"\"") + "\"").ToArray();
+            var rows = 
+                from row in dt.Rows.OfType<DataRow>()
+                select (
+                    from field in row.ItemArray
+                    select $"\"{field.ToString().Replace("\"", "\"\"")}\""
+                    ).ToArray();
+
+            var query = from itemArray in new[] { columnNames }.Concat(rows) 
+                        select string.Join(";", itemArray);
+
+            foreach (var line in query)
             {
-                yield return dt.Rows[0][0].ToString();
-            }
-            else
-            {
-                string[] columnNames = dt.Columns.OfType<DataColumn>().Select(column => "\"" + column.ColumnName.Replace("\"", "\"\"") + "\"").ToArray();
-                yield return string.Join(";", columnNames);
-                foreach (DataRow row in dt.Rows)
-                {
-                    string[] fields = row.ItemArray.Select(field => "\"" + field.ToString().Replace("\"", "\"\"") + "\"").ToArray();
-                    yield return string.Join(";", fields);
-                }
+                yield return line;
             }
         }
     }

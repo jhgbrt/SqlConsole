@@ -2,7 +2,7 @@
   "profiles": {
     "SqlConsole.Host": {
       "commandName": "Project",
-      "commandLineArgs": "--provider=sqlite --file=\":memory:\""
+      "commandLineArgs": "query --query=\"SELECT 1\" --scalar sqlite --data-source=\":memory:\""
     }
   }
 }

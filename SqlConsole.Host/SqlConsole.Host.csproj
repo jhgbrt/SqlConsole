@@ -17,4 +17,10 @@
     <PackageReference Include="Npgsql" Version="5.0.0-preview1" />
     <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="2.19.90" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.CommandLine">
+      <HintPath>..\..\..\command-line-api\artifacts\bin\System.CommandLine\Debug\netstandard2.0\System.CommandLine.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 </Project>

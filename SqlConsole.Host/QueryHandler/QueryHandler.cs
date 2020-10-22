@@ -1,4 +1,5 @@
 using System;
+using System.CommandLine.IO;
 using System.IO;
 using Net.Code.ADONet;
 
@@ -31,7 +32,6 @@ namespace SqlConsole.Host
                 foreach (var s in _formatter.Format(result))
                 {
                     _writer.WriteLine(s);
-                    _writer.Flush();
                 }
             }
         }
@@ -39,7 +39,6 @@ namespace SqlConsole.Host
         public void Dispose()
         {
             _db.Dispose();
-            _writer.Dispose();
         }
     }
 }
