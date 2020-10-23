@@ -1,5 +1,5 @@
 ﻿using Net.Code.ADONet;
-
+using SqlConsole.Host.Infrastructure;
 using System;
 using System.CommandLine;
 using System.CommandLine.Binding;
@@ -82,12 +82,12 @@ namespace SqlConsole.Host
             Console.WriteLine(builder.WithoutSensitiveInformation());
 
             using var db = new Db(connectionString, provider.DbConfig, provider.Factory);
-
             db.Connect();
 
             var queryHandler = new QueryHandler<DataTable>(db, Console.Out, cb => cb.AsDataTable(), new ConsoleTableFormatter(GetWindowWidth(), " | "));
             new Repl(queryHandler).Enter();
         }
+
         static void DoQuery(Provider provider, DbConnectionStringBuilder builder, IConsole console, InvocationContext context)
         {
             var connectionString = builder.ConnectionString;
@@ -100,8 +100,11 @@ namespace SqlConsole.Host
             var nonquery = context.ParseResult.ValueForOption(_nonquery);
             var input = context.ParseResult.ValueForOption(_input);
             var output = context.ParseResult.ValueForOption(_input);
-            var query = context.ParseResult.ValueForOption(_query) ?? 
-               (input != null && input.Exists ? File.ReadAllText(input.FullName) : null);
+            var query = context.ParseResult.ValueForOption(_query) ??
+               (input is not null && input.Exists ? File.ReadAllText(input.FullName) : null);
+
+            if (query is null)
+                throw new ArgumentException("A query is required");
 
             IQueryHandler queryHandler;
             if (scalar)
@@ -140,9 +143,7 @@ namespace SqlConsole.Host
 
                 var baseproperties = typeof(DbConnectionStringBuilder).GetProperties().Select(p => p.Name).ToHashSet();
                 var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                                     .Where(p => p.PropertyType.IsPrimitive || p.PropertyType.IsEnum || p.PropertyType == typeof(string))
-                                     .Where(p => p.GetSetMethod() != null)
-                                     .Where(p => !baseproperties.Contains(p.Name));
+                                     .Where(p => p.PropertyType.IsSimpleType() && p.GetSetMethod() is not null && !baseproperties.Contains(p.Name));
 
                 foreach (var p in properties)
                 {

@@ -1,3 +1,4 @@
+using Newtonsoft.Json.Converters;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -23,24 +24,28 @@ namespace SqlConsole.Host
             }
             if (result.Rows.Count == 1 && result.Columns.Count == 1)
             {
-                yield return result.Rows[0][0].ToString();
+                yield return result.Rows[0][0]?.ToString() ?? string.Empty;
             }
             else
             {
+
                 var maxLength = _windowWidth - 1;
+
                 var columnLengths = result.ColumnLengths(maxLength, _separator.Length);
                 var columnNames = result.Columns.OfType<DataColumn>().Select(c => c.ColumnName.OfLength(columnLengths[c])).ToList();
                 var joinedColumnNames = string.Join(_separator, columnNames);
-                var line = string.Join("-|-", columnNames.Select(c => new string(Enumerable.Repeat('-', c.Length).ToArray())));
 
                 yield return joinedColumnNames.SafeSubstring(0, maxLength);
+
+                var line = string.Join(_separator, columnNames.Select(c => new string(Enumerable.Repeat('-', c.Length).ToArray())));
+
                 yield return line.SafeSubstring(0, maxLength);
 
-                foreach (var item in result.Rows.OfType<DataRow>())
+                foreach (var row in result.Rows.OfType<DataRow>())
                 {
-                    var row = item;
-                    var values = result.Columns.OfType<DataColumn>().Select(c => row[c].ToString().OfLength(columnLengths[c]));
+                    var values = result.Columns.OfType<DataColumn>().Select(c => (row[c]??string.Empty).ToString()!.OfLength(columnLengths[c]));
                     var rowStr = string.Join(_separator, values);
+
                     yield return rowStr.SafeSubstring(0, maxLength);
                 }
             }

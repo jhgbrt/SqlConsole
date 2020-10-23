@@ -16,12 +16,12 @@ namespace SqlConsole.Host
     {
         public static readonly Provider[] All = new Provider[] 
         {
-            new Provider<SqlConnectionStringBuilder, SqlSettings>("sqlserver", SqlClientFactory.Instance, DbConfig.Default),
-            new Provider<SqliteConnectionStringBuilder, SqliteSettings>("sqlite", SqliteFactory.Instance, DbConfig.Default),
-            new Provider<OracleConnectionStringBuilder, OracleSettings>("oracle", OracleClientFactory.Instance, DbConfig.Oracle),
-            new Provider<DB2ConnectionStringBuilder, DB2Settings>("db2", DB2Factory.Instance, DbConfig.Default),
-            new Provider<MySqlConnectionStringBuilder, MySqlSettings>("mysql", MySqlClientFactory.Instance, DbConfig.Default),
-            new Provider<NpgsqlConnectionStringBuilder, NpgsqlSettings>("postgres", NpgsqlFactory.Instance, DbConfig.PostGreSQL)
+            new Provider<SqlConnectionStringBuilder   , SqlSettings   >("sqlserver", SqlClientFactory.Instance   , DbConfig.Default   ),
+            new Provider<SqliteConnectionStringBuilder, SqliteSettings>("sqlite"   , SqliteFactory.Instance      , DbConfig.Default   ),
+            new Provider<OracleConnectionStringBuilder, OracleSettings>("oracle"   , OracleClientFactory.Instance, DbConfig.Oracle    ),
+            new Provider<DB2ConnectionStringBuilder   , DB2Settings   >("db2"      , DB2Factory.Instance         , DbConfig.Default   ),
+            new Provider<MySqlConnectionStringBuilder , MySqlSettings >("mysql"    , MySqlClientFactory.Instance , DbConfig.Default   ),
+            new Provider<NpgsqlConnectionStringBuilder, NpgsqlSettings>("postgres" , NpgsqlFactory.Instance      , DbConfig.PostGreSQL)
         };
 
         public override string ToString() => Name;

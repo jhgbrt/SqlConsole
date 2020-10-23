@@ -1,41 +1,26 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
 using SqlConsole.Host.Infrastructure;
 
 namespace SqlConsole.Host
 {
+    using static SqlConsole.Host.Extension.State;
     public static class Extension
     {
+        public static Action<string> Log = s => { };
+
         // argument list is used for type inference
         // ReSharper disable once UnusedParameter.Local
-        static LambdaComparer<T> CompareBy<T>(this IEnumerable<T> list, Func<T, int> f) 
+#pragma warning disable RCS1175 // Unused this parameter.
+        static LambdaComparer<T> CompareBy<T>(this IEnumerable<T> list, Func<T?, int> f)
             => new LambdaComparer<T>(f);
-
-        private static string RegexReplace(this string input, string pattern, string replace) 
-            => Regex.Replace(input, pattern, replace);
-        private static string RegexReplace(this string input, string pattern, MatchEvaluator evaluator) 
-            => Regex.Replace(input, pattern, evaluator);
-        
-        public static string BookTitleToSentence(this string s)
-        {
-            if (s == null) throw new ArgumentNullException(nameof(s));
-            
-            var result = s
-                .RegexReplace(@"(\P{Ll})(\P{Ll}\p{Ll})", "$1 $2")               // ABc => A Bc, 1Bc => 1 Bc
-                .RegexReplace(@"(\p{Ll})(\P{Ll})", "$1 $2")                     // aB  => a B , a1  => a 1
-                .RegexReplace(@"( )(\p{Lu})(\p{Ll})", m => m.Value.ToLower());  // ' Aa' => ' aa'
-
-            return result;
-        }
-
-        public static string FirstWord(this string s) 
-            => new string(s.TakeWhile(char.IsLetterOrDigit).ToArray());
+#pragma warning restore RCS1175 // Unused this parameter.
 
         public static Dictionary<DataColumn, int> ColumnLengths(this DataTable dt, int totalWidth, int separatorSize)
         {
@@ -78,10 +63,25 @@ namespace SqlConsole.Host
             => new ScriptSplitter(s).Split();
 
 
-        enum State
+        internal enum State
         {
             UpperCase,
-            LowerCase
+            LowerCase,
+            Digit,
+            WhiteSpace
+        }
+
+        struct Char
+        {
+            public Char(char c) { Value = c; }
+            public char Value { get; init; }
+            public bool IsLower => char.IsLower(Value);
+            public bool IsUpper => char.IsUpper(Value);
+            public bool IsDigit => char.IsDigit(Value);
+            public bool IsLetter => char.IsLetter(Value);
+            public bool IsLetterOrDigit => char.IsLetterOrDigit(Value);
+            public bool IsWhiteSpace => char.IsWhiteSpace(Value);
+            public bool IsUnderscore => Value == '_';
         }
 
         public static string ToHyphenedString(this string input)
@@ -89,17 +89,21 @@ namespace SqlConsole.Host
 
             var sb = new StringBuilder();
 
-            var state = State.UpperCase;
+            var state = UpperCase;
 
             foreach (var c in input)
             {
-                (state, sb) = state switch
+                (state, sb) = (state, new Char(c)) switch
                 {
-                    State.UpperCase when char.IsLower(c) => (State.LowerCase, sb),
-                    State.LowerCase when char.IsUpper(c) => (State.UpperCase, sb.Append('-')),
+                    (UpperCase, { IsLower: true }) => (LowerCase, sb),
+                    (UpperCase, { IsDigit: true }) => (Digit, sb),
+                    (LowerCase, { IsUpper: true }) => (UpperCase, sb.Append('-')),
+                    (LowerCase, { IsDigit: true }) => (Digit, sb),
+                    (Digit, {IsLower: true }) => (LowerCase, sb),
+                    (Digit, {IsUpper: true }) => (UpperCase, sb.Append('-')),
                     _ => (state, sb)
                 };
-                if (!char.IsWhiteSpace(c))
+                if (char.IsLetterOrDigit(c))
                 {
                     sb.Append(char.ToLowerInvariant(c));
                 }
@@ -108,40 +112,43 @@ namespace SqlConsole.Host
             return sb.ToString();
         }
 
+
         public static string ToSentence(this string input)
         {
             var sb = new StringBuilder();
             var buffer = new StringBuilder();
-            var state = State.UpperCase;
+            var state = UpperCase;
 
             foreach (var c in input)
             {
-                switch (state)
+                var inputstate = state;
+                (state, sb, buffer) = (state, new Char(c)) switch
                 {
-                    case State.UpperCase when sb.Length == 0:
-                        sb.Append(char.ToUpper(c));
-                        break;
-                    case State.UpperCase when char.IsLower(c):
-                        if (buffer.Length == 1)
-                            sb.Append(buffer.ToString().ToLower());
-                        else
-                            sb.Append(buffer);
-                        buffer.Clear();
-                        sb.Append(c);
-                        state = State.LowerCase;
-                        break;
-                    case State.UpperCase:
-                        buffer.Append(c);
-                        break;
-                    case State.LowerCase when char.IsUpper(c):
-                        sb.Append(' ');
-                        buffer.Append(c);
-                        state = State.UpperCase;
-                        break;
-                    case State.LowerCase:
-                        sb.Append(c);
-                        break;
-                }
+                    // although State is always UpperCase, the first char could be lowercase
+                    (UpperCase, _) when sb.Length == 0
+                        => (state, sb.Append(char.ToUpper(c)), buffer),
+                    (UpperCase or WhiteSpace, { IsLower: true })
+                        => (LowerCase, sb.Append(buffer.Length == 1 ? buffer.ToString().ToLower() : buffer.ToString()).Append(c), buffer.Clear()),
+                    (Digit, { IsUpper: true })
+                        => (UpperCase, sb.Append(buffer), buffer.Clear().Append(' ').Append(char.ToLower(c))),
+                    (UpperCase, { IsDigit: true })
+                        => (Digit, sb, buffer.Append(c)),
+                    (LowerCase, { IsUnderscore: true } or { IsWhiteSpace: true })
+                        => (WhiteSpace, sb.Append(' '), buffer),
+                    (LowerCase, { IsDigit: true } or { IsUpper: true})
+                        => (WhiteSpace, sb.Append(' '), buffer.Append(c)),
+                    (WhiteSpace, { IsUpper: true })
+                        => (UpperCase, sb, buffer.Append(c)),
+                    (WhiteSpace, { IsDigit: true })
+                        => (Digit, sb, buffer.Append(c)),
+                    (UpperCase or Digit, _)
+                        => (state, sb, buffer.Append(c)),
+                    (LowerCase, _)
+                        => (state, sb.Append(c), buffer),
+                    _ => (state,sb,buffer)
+                };
+
+                Log($"{inputstate} -> {c} -> {state}");
             }
 
             if (buffer.Length > 0)
@@ -153,11 +160,33 @@ namespace SqlConsole.Host
         public static T? GetAttribute<T>(this ICustomAttributeProvider prop) => prop.GetCustomAttributes(false).OfType<T>().FirstOrDefault();
         public static DbConnectionStringBuilder WithoutSensitiveInformation(this DbConnectionStringBuilder b)
         {
-            foreach (var v in new[] { "password", "Password", "PWD", "Pwd", "pwd" })
+            foreach (var v in new[] { "password", "Password", "PWD", "Pwd", "pwd", "PASSWORD" })
             {
                 if (b.ContainsKey(v)) b[v] = "******";
             }
             return b;
+        }
+
+        static readonly ConcurrentDictionary<Type, bool> IsSimpleTypeCache = new ConcurrentDictionary<Type, bool>();
+
+        public static bool IsSimpleType(this Type type)
+        {
+            return IsSimpleTypeCache.GetOrAdd(type, t =>
+                type.IsPrimitive ||
+                type.IsEnum ||
+                type == typeof(string) ||
+                type == typeof(decimal) ||
+                type == typeof(DateTime) ||
+                type == typeof(DateTimeOffset) ||
+                type == typeof(TimeSpan) ||
+                type == typeof(Guid) ||
+                IsNullableSimpleType(type));
+
+            static bool IsNullableSimpleType(Type t)
+            {
+                var underlyingType = Nullable.GetUnderlyingType(t);
+                return underlyingType != null && IsSimpleType(underlyingType);
+            }
         }
     }
 }

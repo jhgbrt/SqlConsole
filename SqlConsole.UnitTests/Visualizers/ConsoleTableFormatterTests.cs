@@ -21,7 +21,7 @@ namespace SqlConsole.UnitTests.Visualizers
             var result = string.Join(Environment.NewLine, formatter.Format(dataTable));
 
             var expected = "Id | FirstName | LastName\r\n" +
-                           "---|-----------|---------\r\n" +
+                           "-- | --------- | --------\r\n" +
                            "1  | John      | Doe     ";
 
             Assert.Equal(expected, result);
@@ -38,7 +38,7 @@ namespace SqlConsole.UnitTests.Visualizers
             var result = string.Join(Environment.NewLine, formatter.Format(dataTable));
 
             var expected = "Id | FirstName | La\r\n" +
-                           "---|-----------|---\r\n" +
+                           "-- | --------- | --\r\n" +
                            "1  | John      | Do";
 
             Assert.Equal(expected, result);

@@ -6,7 +6,7 @@ namespace SqlConsole.Host
     {
         public IEnumerable<string> Format(object item)
         {
-            yield return item.ToString();
+            yield return item?.ToString() ?? string.Empty;
         }
     }
 }

@@ -39,7 +39,7 @@ namespace SqlConsole.UnitTests.Visualizers
         }
 
         [Fact]
-        public void SingleResult_YieldsThatResult()
+        public void SingleResult_YieldsTableWithSingleResult()
         {
             var dataTable = new DataTable();
             dataTable.Columns.Add("Result", typeof(string));
@@ -47,7 +47,7 @@ namespace SqlConsole.UnitTests.Visualizers
 
             var formatter = new CsvFormatter();
             var result = formatter.Format(dataTable).ToList();
-            Assert.Equal("Some Value", result.Single());
+            Assert.Equal(new[] { "\"Result\"", "\"Some Value\"" }, result);
         }
     }
 }

@@ -18,10 +18,10 @@ namespace SqlConsole.UnitTests.Infrastructure
     /// <summary>
     /// Summary description for ScriptHelperTests.
     /// </summary>
-    public class ScriptHelperTests
+    public class ScriptSplittingTests
     {
         ITestOutputHelper _output;
-        public ScriptHelperTests(ITestOutputHelper output)
+        public ScriptSplittingTests(ITestOutputHelper output)
         {
             _output = output;
         }
@@ -46,13 +46,11 @@ namespace SqlConsole.UnitTests.Infrastructure
         [InlineData("foo\r\ngo\r\nGO\r\n", "foo\r\n")]
         [InlineData("foo\r\ngo\r\nGO\r\nbar", "foo\r\n", "bar")]
         [InlineData("foo\r\nGO\r\nfoo_go_bar\r\nGO\r\n", "foo\r\n", "foo_go_bar\r\n")]
-        public void Tests(string input, params string[] expected)
+        public void SplitTest(string input, params string[] expected)
         {
             var result = Script.ParseScripts(input, s => _output.WriteLine(s)).ToArray();
             Assert.Equal(expected, result);
         }
-
-
     }
 
     record MyRecord(Func<string, MyRecord> SomeAction, string Name, ITestOutputHelper Output)

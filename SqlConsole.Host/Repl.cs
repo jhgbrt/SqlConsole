@@ -61,10 +61,8 @@ namespace SqlConsole.Host
             {
                 (IsComplete, _query, Command) = line switch
                 {
-                    "GO" => (true, _query, new SqlQuery(_query.ToString()) as IReplCommand),
-                    "/" => (true, _query, new SqlQuery(_query.ToString())),
-                    "exit" => (true, _query.Append(line), new StopExecution()),
-                    "quit" => (true, _query.Append(line), new StopExecution()),
+                    "GO" or "/" => (true, _query, new SqlQuery(_query.ToString()) as IReplCommand),
+                    "exit" or "quit" => (true, _query.Append(line), new StopExecution()),
                     string s when s.EndsWith(";") => (true, _query, new SqlQuery(_query.AppendLine(s).ToString())),
                     string s => (false, _query.AppendLine(s), null)
                 };

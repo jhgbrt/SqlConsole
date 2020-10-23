@@ -8,15 +8,17 @@ namespace SqlConsole.Host
     {
         public IEnumerable<string> Format(DataTable dt)
         {
-            var columnNames = dt.Columns.OfType<DataColumn>().Select(column => "\"" + column.ColumnName.Replace("\"", "\"\"") + "\"").ToArray();
-            var rows = 
+            var columnNames = dt.Columns.OfType<DataColumn>().Select(column => "\"" + column.ColumnName.Replace("\"", "\"\"") + "\"");
+
+            var rowValues =
                 from row in dt.Rows.OfType<DataRow>()
                 select (
                     from field in row.ItemArray
-                    select $"\"{field.ToString().Replace("\"", "\"\"")}\""
-                    ).ToArray();
+                    let representation = field?.ToString()?.Replace("\"", "\"\"") ?? string.Empty
+                    select $"\"{representation}\""
+                    );
 
-            var query = from itemArray in new[] { columnNames }.Concat(rows) 
+            var query = from itemArray in new[] { columnNames }.Concat(rowValues)
                         select string.Join(";", itemArray);
 
             foreach (var line in query)

@@ -1,13 +1,9 @@
 using System;
-using System.CommandLine.IO;
 using System.IO;
 using Net.Code.ADONet;
 
 namespace SqlConsole.Host
 {
-
-
-
     class QueryHandler<TQueryResult> : IQueryHandler
     {
         private readonly Func<CommandBuilder, TQueryResult> _do;

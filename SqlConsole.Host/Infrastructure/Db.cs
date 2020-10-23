@@ -11,11 +11,14 @@ using System.Dynamic;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+
 using System.Text;
 using System.Text.RegularExpressions;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.SqlClient;
+
+#nullable disable
 
 namespace Net.Code.ADONet
 {
@@ -982,7 +985,7 @@ namespace Net.Code.ADONet
     /// <summary>
     /// To enable logging, set the Log property of the Logger class
     /// </summary>
-    class Logger
+    static class Logger
     {
 #if DEBUG
         public static Action<string> Log = s => { Debug.WriteLine(s); };
