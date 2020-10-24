@@ -1,7 +1,9 @@
-﻿using System;
+﻿using SqlConsole.Host.Infrastructure;
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using SqlConsole.Host.Infrastructure;
+
 using Xunit;
 using Xunit.Abstractions;
 
@@ -79,43 +81,12 @@ namespace SqlConsole.UnitTests.Infrastructure
         public MyRecord1 Test1(string s)
         {
             Output.WriteLine(s + " from Test1");
-            return this with { Name = "Name set in Test1"};
+            return this with { Name = "Name set in Test1" };
         }
         public MyRecord1 Test2(string s)
         {
             Output.WriteLine(s + " from Test2");
             return this;
         }
-    }
-    public class CSharpRecordTests
-    {
-        ITestOutputHelper _output;
-
-        public CSharpRecordTests(ITestOutputHelper output)
-        {
-            _output = output;
-        }
-        [Fact]
-        public void TestRecordFeatures1()
-        {
-            var r = new MyRecord1(_output);
-            _output.WriteLine(r.ToString());
-            r = r.Test1("test.1.");
-            _output.WriteLine(r.ToString());
-            r = r.Test2("test.2.");
-            _output.WriteLine(r.ToString());
-            r = r.Test2("test.3.");
-            _output.WriteLine(r.ToString());
-        }
-
-        [Fact]
-        public void TestRecordFeatures2()
-        {
-            var r = new MyRecord("test", _output);
-            _output.WriteLine(r.ToString());
-            r = r.SomeAction("test.1.");
-            r = r.SomeAction("test.2.");
-            r = r.SomeAction("test.3.");
-        }
-    }
+    }    
 }

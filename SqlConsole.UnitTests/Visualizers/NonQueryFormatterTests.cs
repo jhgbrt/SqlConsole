@@ -1,8 +1,4 @@
-﻿using System;
-using System.Data;
-using System.Linq;
-using Xunit;
-using Net.Code.ADONet;
+﻿using Xunit;
 using SqlConsole.Host;
 
 namespace SqlConsole.UnitTests.Visualizers

@@ -1,11 +1,15 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.CommandLine;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+
 using SqlConsole.Host.Infrastructure;
 
 namespace SqlConsole.Host
@@ -112,6 +116,14 @@ namespace SqlConsole.Host
             return sb.ToString();
         }
 
+        private static StringBuilder ToLower(this StringBuilder sb)
+        {
+            for (int i = 0; i < sb.Length; i++)
+            {
+                if (char.IsUpper(sb[i])) sb[i] = char.ToLower(sb[i]);
+            }
+            return sb;
+        }
 
         public static string ToSentence(this string input)
         {
@@ -127,22 +139,34 @@ namespace SqlConsole.Host
                     // although State is always UpperCase, the first char could be lowercase
                     (UpperCase, _) when sb.Length == 0
                         => (state, sb.Append(char.ToUpper(c)), buffer),
-                    (UpperCase or WhiteSpace, { IsLower: true })
-                        => (LowerCase, sb.Append(buffer.Length == 1 ? buffer.ToString().ToLower() : buffer.ToString()).Append(c), buffer.Clear()),
+                    // when one character buffered and next char is lowercase, make the buffer lower case and transition to lowercase
+                    (UpperCase or WhiteSpace, { IsLower: true }) when buffer.Length == 1
+                        => (LowerCase, sb.Append(buffer.ToLower()).Append(c), buffer.Clear()),
+                    // multiple uppercase characters should be preserved
+                    (UpperCase, { IsLower: true }) when buffer.Length > 1
+                        => (LowerCase, sb.Append(buffer).Append(c), buffer.Clear()),
+                    // while buffering digits, when next char is uppercase: consider this next word 
                     (Digit, { IsUpper: true })
                         => (UpperCase, sb.Append(buffer), buffer.Clear().Append(' ').Append(char.ToLower(c))),
+                    // while buffering uppercase, next char is digit: keep buffering
                     (UpperCase, { IsDigit: true })
                         => (Digit, sb, buffer.Append(c)),
+                    // while in lowercase, if next char is underscore or whitespace: append a space and transition to whitespace
                     (LowerCase, { IsUnderscore: true } or { IsWhiteSpace: true })
                         => (WhiteSpace, sb.Append(' '), buffer),
+                    // while in lowercase, if next char is a digit or uppercase: start a new word
                     (LowerCase, { IsDigit: true } or { IsUpper: true})
                         => (WhiteSpace, sb.Append(' '), buffer.Append(c)),
+                    // while in whitespace, if next char is uppercase: start buffering
                     (WhiteSpace, { IsUpper: true })
                         => (UpperCase, sb, buffer.Append(c)),
+                    // while in whitespace, if next char is digit: start buffering
                     (WhiteSpace, { IsDigit: true })
                         => (Digit, sb, buffer.Append(c)),
+                    // buffering (uppercase or digit)
                     (UpperCase or Digit, _)
                         => (state, sb, buffer.Append(c)),
+                    // adding characters in lowercase
                     (LowerCase, _)
                         => (state, sb.Append(c), buffer),
                     _ => (state,sb,buffer)
@@ -187,6 +211,50 @@ namespace SqlConsole.Host
                 var underlyingType = Nullable.GetUnderlyingType(t);
                 return underlyingType != null && IsSimpleType(underlyingType);
             }
+        }
+        public static IEnumerable<Option> GetOptions(this Type type) => type.GetProperties(BindingFlags.Instance | BindingFlags.Public).ToOptions();
+        public static IEnumerable<Option> ToOptions(this IEnumerable<PropertyInfo> properties)
+        {
+            return
+                from property in properties
+                let description = property.GetAttribute<DescriptionAttribute>()?.Description ?? property.Name.ToSentence()
+                let required = property.GetAttribute<RequiredAttribute>() != null
+                select new Option($"--{property.Name.ToHyphenedString()}", description)
+                {
+                    IsRequired = required,
+                    Argument = new Argument { ArgumentType = property.PropertyType }
+                };
+        }
+        public static Command WithChildCommand(this Command parent, Command child)
+        {
+            parent.AddCommand(child);
+            return parent;
+        }
+        public static Command WithChildCommands(this Command parent, params Command[] children)
+        {
+            foreach (var child in children) parent.AddCommand(child);
+            return parent;
+        }
+
+
+        public static Command WithArgument(this Command command, Argument argument)
+        {
+            command.AddArgument(argument);
+            return command;
+        }
+        public static Command WithOptions(this Command command, IEnumerable<Option> options)
+        {
+            foreach (var o in options) command.AddOption(o);
+            return command;
+        }
+
+        internal static IEnumerable<PropertyInfo> GetDbConnectionStringBuilderProperties(this Provider provider) 
+        {
+            var type = provider.GetType().GetGenericArguments()[0];
+            var baseproperties = typeof(DbConnectionStringBuilder).GetProperties().Select(p => p.Name).ToHashSet();
+            var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                                 .Where(p => p.PropertyType.IsSimpleType() && p.GetSetMethod() is not null && !baseproperties.Contains(p.Name));
+            return properties;
         }
     }
 }

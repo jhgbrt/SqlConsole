@@ -6,7 +6,7 @@
     <LanguageVersion>preview</LanguageVersion>
     <AssemblyName>sql</AssemblyName>
     <Nullable>enable</Nullable>
-    <Platforms>AnyCPU;x64</Platforms>
+    <Platforms>AnyCPU</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,9 +20,4 @@
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta1.20371.2" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="System.CommandLine">
-      <HintPath>..\..\..\command-line-api\artifacts\bin\System.CommandLine\Debug\netstandard2.0\System.CommandLine.dll</HintPath>
-    </Reference>
-  </ItemGroup>
 </Project>

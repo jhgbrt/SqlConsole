@@ -10,7 +10,8 @@ namespace SqlConsole.UnitTests.Infrastructure
     {
         public ExtensionsTests(ITestOutputHelper output)
         {
-            Extension.Log = s => output.WriteLine(s);
+            // only enable this for debugging (does not work when running tests in parallel)
+            // Extension.Log = s => output.WriteLine(s);
         }
 
         [Fact]

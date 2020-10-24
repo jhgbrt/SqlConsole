@@ -1,5 +1,6 @@
 using System;
-using System.IO;
+using System.CommandLine.IO;
+
 using Net.Code.ADONet;
 
 namespace SqlConsole.Host
@@ -9,9 +10,9 @@ namespace SqlConsole.Host
         private readonly Func<CommandBuilder, TQueryResult> _do;
         private readonly ITextFormatter<TQueryResult> _formatter;
         private readonly IDb _db;
-        private readonly TextWriter _writer;
+        private readonly IStandardStreamWriter _writer;
 
-        public QueryHandler(IDb db, TextWriter writer, Func<CommandBuilder, TQueryResult> @do, ITextFormatter<TQueryResult> formatter)
+        public QueryHandler(IDb db, IStandardStreamWriter writer, Func<CommandBuilder, TQueryResult> @do, ITextFormatter<TQueryResult> formatter)
         {
             _db = db;
             _writer = writer;
@@ -35,6 +36,7 @@ namespace SqlConsole.Host
         public void Dispose()
         {
             _db.Dispose();
+            if (_writer is IDisposable d) d.Dispose();
         }
     }
 }
