@@ -11,6 +11,7 @@ using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Xml.Linq;
 
 namespace SqlConsole.Host
 {
@@ -225,14 +226,26 @@ namespace SqlConsole.Host
         public static IEnumerable<Option> GetOptions(this Type type, bool nonNullableMeansRequired = false) 
             => type.GetProperties(BindingFlags.Instance | BindingFlags.Public).ToOptions(nonNullableMeansRequired);
         public static IEnumerable<Option> ToOptions(this IEnumerable<PropertyInfo> properties, bool nonNullableMeansRequired = false)
-            => from property in properties
-               let description = property.GetAttribute<DescriptionAttribute>()?.Description ?? property.Name.ToSentence()
-               let required = property.GetAttribute<RequiredAttribute>() != null || (nonNullableMeansRequired && property.PropertyType.IsValueType && !property.PropertyType.IsNullableType())
-               select new Option($"--{property.Name.ToHyphenedString()}", description)
-               {
-                   IsRequired = required,
-                   Argument = new Argument { ArgumentType = property.PropertyType }
-               };
+        {
+            try
+            {
+                return from property in properties
+                       let description = property.GetAttribute<DescriptionAttribute>()?.Description 
+                                      ?? property.GetDescriptionFromDocumentation() 
+                                      ?? property.Name.ToSentence()
+                       let required = property.GetAttribute<RequiredAttribute>() != null || (nonNullableMeansRequired && property.PropertyType.IsValueType && !property.PropertyType.IsNullableType())
+                       select new Option($"--{property.Name.ToHyphenedString()}", description)
+                       {
+                           IsRequired = required,
+                           Argument = new Argument { ArgumentType = property.PropertyType }
+                       };
+            }
+            finally
+            {
+                XmlDocumentation.Clear();
+            }
+        }
+
         public static Command WithChildCommand(this Command parent, Command child)
         {
             parent.AddCommand(child);
@@ -254,6 +267,44 @@ namespace SqlConsole.Host
         {
             foreach (var o in options) command.AddOption(o);
             return command;
+        }
+
+        public static string? GetDescriptionFromDocumentation(this PropertyInfo p)
+        {
+            var doc = p.GetDocumentation();
+            if (doc != null)
+            {
+                var xdoc = XDocument.Parse("<root>" + doc + "</root>");
+                var value = xdoc.Descendants("summary").First().Value.Trim();
+                return Cleanup(value);
+            }
+            return null;
+        }
+        enum CleanupState
+        {
+            Whitespace,
+            Nonwhitespace
+        }
+        static string Cleanup(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+            var sb = new StringBuilder();
+            var state = CleanupState.Nonwhitespace;
+            var start = value.StartsWith("Gets or sets ", StringComparison.OrdinalIgnoreCase) ? "Gets or sets ".Length : 0;
+            for (int i = start; i < value.Length; i++)
+            {
+                var c = value[i];
+                (state, sb) = (state, new Char(c)) switch
+                {
+                    (CleanupState.Whitespace, { IsWhiteSpace: true }) => (state, sb),
+                    (CleanupState.Whitespace, { IsWhiteSpace: false }) => (CleanupState.Nonwhitespace, sb.Append(c)),
+                    (CleanupState.Nonwhitespace, { IsWhiteSpace: true }) => (CleanupState.Whitespace, sb.Append(' ')),
+                    (CleanupState.Nonwhitespace, { IsWhiteSpace: false }) => (state, sb.Append(c)),
+                    _ => throw new Exception("Unhandled switch case")
+                };
+            }
+            sb[0] = char.ToUpper(sb[0]);
+            return sb.ToString();
         }
     }
 }

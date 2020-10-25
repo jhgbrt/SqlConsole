@@ -600,8 +600,17 @@ namespace Net.Code.ADONet
         public void Connect()
         {
             var connection = _externalConnection ?? _connection.Value;
+            if (connection.State == ConnectionState.Broken)
+                connection.Close();
             if (connection.State != ConnectionState.Open)
                 connection.Open();
+        }
+
+        public void Disconnect()
+        {
+            var connection = _externalConnection ?? _connection.Value;
+            if (connection.State == ConnectionState.Broken || connection.State == ConnectionState.Open)
+                connection.Close();
         }
 
         /// <summary>
@@ -611,7 +620,7 @@ namespace Net.Code.ADONet
         {
             get
             {
-                Connect();
+                //Connect();
                 return _externalConnection ?? _connection.Value;
             }
         }
@@ -946,6 +955,10 @@ namespace Net.Code.ADONet
         /// Open a connection to the database. Not required.
         /// </summary>
         void Connect();
+        /// <summary>
+        /// Close connection to the database. Not required.
+        /// </summary>
+        void Disconnect();
         /// <summary>
         /// The actual IDbConnection (which will be open)
         /// </summary>

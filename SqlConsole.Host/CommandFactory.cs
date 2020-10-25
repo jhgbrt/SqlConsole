@@ -14,13 +14,13 @@ namespace SqlConsole.Host
     {
         public static Command CreateCommand()
         {
-            var console = CreateProviderCommands((queryHandler, options) => new Repl(queryHandler).Enter())
+            var console = CreateProviderCommands<Repl>()
                 .Aggregate(
                     new Command("console", "Run an interactive SQL console. Run the help command for a specific provider (console [provider] -h) for more info."), 
                     (parent, child) => parent.WithChildCommand(child)
                     );
 
-            var query = CreateProviderCommands((queryHandler, options) => queryHandler.Execute(options.GetQuery()))
+            var query = CreateProviderCommands<SingleQuery>()
                 .Aggregate(
                     new Command("query", $"Run an SQL query inline or from a file. Run the help command for a specific provider (console [provider] -h) for more info."), 
                     (parent, child) => parent.WithChildCommand(child.WithArgument(new Argument("query"))
@@ -34,16 +34,17 @@ namespace SqlConsole.Host
                     $"Use the help function of each command for info on how to connect."
             }.WithChildCommands(console, query);
         }
-        static IEnumerable<Command> CreateProviderCommands(Action<IQueryHandler, QueryOptions> execute) 
+        static IEnumerable<Command> CreateProviderCommands<T>() where T: ICommand, new()
             => (
                 from dynamic p in Provider.All
-                select CreateCommand(p, execute)
+                select CreateCommand(p, new T())
                 )
                 .OfType<Command>();
 
-        static Command CreateCommand<TConnectionStringBuilder>(
-            Provider<TConnectionStringBuilder> provider, Action<IQueryHandler, QueryOptions> execute)
-            where TConnectionStringBuilder : DbConnectionStringBuilder, new()
+        static Command CreateCommand<TConnectionStringBuilder, TCommand>(
+            Provider<TConnectionStringBuilder> provider, TCommand commandHandler)
+            where TConnectionStringBuilder : DbConnectionStringBuilder
+            where TCommand : ICommand
         {
             var options = provider.ConnectionConfigurationProperties().ToOptions();
             var command = new Command(provider.Name)
@@ -51,7 +52,7 @@ namespace SqlConsole.Host
                 Handler = CommandHandler.Create((TConnectionStringBuilder builder, QueryOptions options, IConsole console) =>
                 {
                     using var queryHandler = CreateQueryHandler(provider, builder, options, console);
-                    execute(queryHandler, options);
+                    commandHandler.Execute(queryHandler, options);
                 })
             }.WithOptions(options);
 
@@ -61,18 +62,12 @@ namespace SqlConsole.Host
         // builder, options and console are injected by System.CommandLine
         private static IQueryHandler CreateQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
         {
-            var connectionString = builder.ConnectionString;
-            //console.Out.WriteLine(builder.WithoutSensitiveInformation().ConnectionString);
-
-            var db = new Db(connectionString, provider.DbConfig, provider.Factory);
-            db.Connect();
-
             return options switch
             {
-                { AsScalar: true } => new QueryHandler<object>(db, console.Out, cb => cb.AsScalar(), new ScalarFormatter()),
-                { AsNonquery: true } => new QueryHandler<int>(db, console.Out, cb => cb.AsNonQuery(), new NonQueryFormatter()),
-                _ when options.Output != null => new QueryHandler<DataTable>(db, options.GetWriter(console), cb => cb.AsDataTable(), new CsvFormatter()),
-                _ => new QueryHandler<DataTable>(db, console.Out, cb => cb.AsDataTable(), new ConsoleTableFormatter(GetWindowWidth(), " | "))
+                { AsScalar: true } => new QueryHandler<object>(provider, builder.ConnectionString, console.Out, cb => cb.AsScalar(), new ScalarFormatter()),
+                { AsNonquery: true } => new QueryHandler<int>(provider, builder.ConnectionString, console.Out, cb => cb.AsNonQuery(), new NonQueryFormatter()),
+                _ when options.Output != null => new QueryHandler<DataTable>(provider, builder.ConnectionString, options.GetWriter(console), cb => cb.AsDataTable(), new CsvFormatter()),
+                _ => new QueryHandler<DataTable>(provider, builder.ConnectionString, console.Out, cb => cb.AsDataTable(), new ConsoleTableFormatter(GetWindowWidth(), " | "))
             };
             
             static int GetWindowWidth()

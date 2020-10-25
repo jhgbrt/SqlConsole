@@ -1,0 +1,10 @@
+CREATE TABLE MyTable (
+ID integer PRIMARY KEY AUTOINCREMENT,
+Name nvarchar(12)
+);
+INSERT INTO MyTable VALUES 
+  (1, "Test 1"),
+  (2, "TEST 2"),
+  (3, "TEST 3")
+;
+SELECT * FROM MyTable

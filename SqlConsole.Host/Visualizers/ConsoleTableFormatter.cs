@@ -27,6 +27,7 @@ namespace SqlConsole.Host
             }
             else
             {
+                yield return string.Empty;
 
                 var maxLength = _windowWidth - 1;
 
@@ -47,6 +48,8 @@ namespace SqlConsole.Host
 
                     yield return rowStr.SafeSubstring(0, maxLength);
                 }
+
+                yield return string.Empty;
             }
         }
     }

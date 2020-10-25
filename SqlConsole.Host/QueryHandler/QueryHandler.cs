@@ -1,5 +1,7 @@
 using System;
 using System.CommandLine.IO;
+using System.Data;
+using System.Data.Common;
 
 using Net.Code.ADONet;
 
@@ -11,17 +13,27 @@ namespace SqlConsole.Host
         private readonly ITextFormatter<TQueryResult> _formatter;
         private readonly IDb _db;
         private readonly IStandardStreamWriter _writer;
+        private readonly Provider _provider;
 
-        public QueryHandler(IDb db, IStandardStreamWriter writer, Func<CommandBuilder, TQueryResult> @do, ITextFormatter<TQueryResult> formatter)
+        public QueryHandler(Provider provider, string connectionString, IStandardStreamWriter writer, Func<CommandBuilder, TQueryResult> @do, ITextFormatter<TQueryResult> formatter)
         {
-            _db = db;
+            _provider = provider;
             _writer = writer;
             _do = @do;
             _formatter = formatter;
+            _db = new Db(connectionString, provider.DbConfig, provider.Factory);
         }
+
+        public string ConnectionStatus => $"[{_provider.Name} - {DbConnectionStatus}])";
+        private string DbConnectionStatus => _db.Connection.State switch
+        {
+            ConnectionState.Open => "connected", _ => "disconnected"
+        };
+
 
         public void Execute(string query)
         {
+            _db.Connect();
             foreach (var script in query.SplitOnGo())
             {
                 var cb = _db.Sql(script);
@@ -31,6 +43,14 @@ namespace SqlConsole.Host
                     _writer.WriteLine(s);
                 }
             }
+        }
+        public void Connect()
+        {
+            _db.Connect();
+        }
+        public void Disconnect()
+        {
+            _db.Disconnect();
         }
 
         public void Dispose()
