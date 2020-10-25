@@ -1,3 +1,5 @@
+using SqlConsole.Host.Infrastructure;
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -9,8 +11,6 @@ using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-
-using SqlConsole.Host.Infrastructure;
 
 namespace SqlConsole.Host
 {
@@ -60,10 +60,14 @@ namespace SqlConsole.Host
             return result;
         }
 
-        public static string SafeSubstring(this string s, int startIndex, int length) 
-            => s.Substring(startIndex, Math.Min(length, s.Length));
+        public static string SafeSubstring(this string s, int startIndex, int length)
+        {
+            startIndex = Math.Min(startIndex, s.Length);
+            length = Math.Min(length, s.Length - startIndex);
+            return s.Substring(startIndex, length);
+        }
 
-        public static IEnumerable<string> SplitOnGo(this string s) 
+        public static IEnumerable<string> SplitOnGo(this string s)
             => new ScriptSplitter(s).Split();
 
 
@@ -103,8 +107,8 @@ namespace SqlConsole.Host
                     (UpperCase, { IsDigit: true }) => (Digit, sb),
                     (LowerCase, { IsUpper: true }) => (UpperCase, sb.Append('-')),
                     (LowerCase, { IsDigit: true }) => (Digit, sb),
-                    (Digit, {IsLower: true }) => (LowerCase, sb),
-                    (Digit, {IsUpper: true }) => (UpperCase, sb.Append('-')),
+                    (Digit, { IsLower: true }) => (LowerCase, sb),
+                    (Digit, { IsUpper: true }) => (UpperCase, sb.Append('-')),
                     _ => (state, sb)
                 };
                 if (char.IsLetterOrDigit(c))
@@ -155,7 +159,7 @@ namespace SqlConsole.Host
                     (LowerCase, { IsUnderscore: true } or { IsWhiteSpace: true })
                         => (WhiteSpace, sb.Append(' '), buffer),
                     // while in lowercase, if next char is a digit or uppercase: start a new word
-                    (LowerCase, { IsDigit: true } or { IsUpper: true})
+                    (LowerCase, { IsDigit: true } or { IsUpper: true })
                         => (WhiteSpace, sb.Append(' '), buffer.Append(c)),
                     // while in whitespace, if next char is uppercase: start buffering
                     (WhiteSpace, { IsUpper: true })
@@ -169,7 +173,7 @@ namespace SqlConsole.Host
                     // adding characters in lowercase
                     (LowerCase, _)
                         => (state, sb.Append(c), buffer),
-                    _ => (state,sb,buffer)
+                    _ => (state, sb, buffer)
                 };
 
                 Log($"{inputstate} -> {c} -> {state}");
@@ -212,19 +216,23 @@ namespace SqlConsole.Host
                 return underlyingType != null && IsSimpleType(underlyingType);
             }
         }
-        public static IEnumerable<Option> GetOptions(this Type type) => type.GetProperties(BindingFlags.Instance | BindingFlags.Public).ToOptions();
-        public static IEnumerable<Option> ToOptions(this IEnumerable<PropertyInfo> properties)
+
+        static bool IsNullableType(this Type t)
         {
-            return
-                from property in properties
-                let description = property.GetAttribute<DescriptionAttribute>()?.Description ?? property.Name.ToSentence()
-                let required = property.GetAttribute<RequiredAttribute>() != null
-                select new Option($"--{property.Name.ToHyphenedString()}", description)
-                {
-                    IsRequired = required,
-                    Argument = new Argument { ArgumentType = property.PropertyType }
-                };
+            return Nullable.GetUnderlyingType(t) != null;
         }
+
+        public static IEnumerable<Option> GetOptions(this Type type, bool nonNullableMeansRequired = false) 
+            => type.GetProperties(BindingFlags.Instance | BindingFlags.Public).ToOptions(nonNullableMeansRequired);
+        public static IEnumerable<Option> ToOptions(this IEnumerable<PropertyInfo> properties, bool nonNullableMeansRequired = false)
+            => from property in properties
+               let description = property.GetAttribute<DescriptionAttribute>()?.Description ?? property.Name.ToSentence()
+               let required = property.GetAttribute<RequiredAttribute>() != null || (nonNullableMeansRequired && property.PropertyType.IsValueType && !property.PropertyType.IsNullableType())
+               select new Option($"--{property.Name.ToHyphenedString()}", description)
+               {
+                   IsRequired = required,
+                   Argument = new Argument { ArgumentType = property.PropertyType }
+               };
         public static Command WithChildCommand(this Command parent, Command child)
         {
             parent.AddCommand(child);
@@ -246,15 +254,6 @@ namespace SqlConsole.Host
         {
             foreach (var o in options) command.AddOption(o);
             return command;
-        }
-
-        internal static IEnumerable<PropertyInfo> GetDbConnectionStringBuilderProperties(this Provider provider) 
-        {
-            var type = provider.GetType().GetGenericArguments()[0];
-            var baseproperties = typeof(DbConnectionStringBuilder).GetProperties().Select(p => p.Name).ToHashSet();
-            var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                                 .Where(p => p.PropertyType.IsSimpleType() && p.GetSetMethod() is not null && !baseproperties.Contains(p.Name));
-            return properties;
         }
     }
 }

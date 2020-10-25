@@ -7,11 +7,13 @@ using Oracle.ManagedDataAccess.Client;
 using System.Data.Common;
 using Microsoft.Data.SqlClient;
 using System.Linq;
+using System.Collections.Generic;
+using System.Reflection;
 
 namespace SqlConsole.Host
 {
 
-    record Provider(string Name, DbProviderFactory Factory, DbConfig DbConfig)
+    abstract record Provider(string Name, DbProviderFactory Factory, DbConfig DbConfig)
     {
         public static readonly Provider[] All = new Provider[] 
         {
@@ -24,14 +26,19 @@ namespace SqlConsole.Host
         };
 
         public override string ToString() => Name;
+        public abstract IEnumerable<PropertyInfo> ConnectionConfigurationProperties();
     }
 
     record Provider<TConnectionStringBuilder>(string Name, DbProviderFactory Factory, DbConfig DbConfig)
         : Provider(Name, Factory, DbConfig)
     {
-        public Provider(string name) : this(name, SqlClientFactory.Instance, DbConfig.Default)
+        public override IEnumerable<PropertyInfo> ConnectionConfigurationProperties() 
         {
-
+            var type = typeof(TConnectionStringBuilder);
+            var baseproperties = typeof(DbConnectionStringBuilder).GetProperties().Select(p => p.Name).ToHashSet();
+            var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                                    .Where(p => p.PropertyType.IsSimpleType() && p.GetSetMethod() is not null && !baseproperties.Contains(p.Name));
+            return properties;
         }
     }
 }

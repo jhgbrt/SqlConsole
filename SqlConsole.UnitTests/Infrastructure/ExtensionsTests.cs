@@ -1,4 +1,6 @@
 ﻿using SqlConsole.Host;
+
+using System;
 using System.Data.Common;
 using System.Linq;
 using Xunit;
@@ -144,6 +146,13 @@ namespace SqlConsole.UnitTests.Infrastructure
             var result = s.ToHyphenedString();
             Assert.Equal("hello-world", result);
         }
+        [Fact]
+        public void ToHyphenedStringTests_DigitsBetweenLowerCase_ArePreserved()
+        {
+            string s = "Hello123world";
+            var result = s.ToHyphenedString();
+            Assert.Equal("hello123world", result);
+        }
 
         [Theory]
         [InlineData("Password")]
@@ -176,6 +185,61 @@ namespace SqlConsole.UnitTests.Infrastructure
             var input = new string(Enumerable.Repeat('x', 2).ToArray());
             var result = input.OfLength(5);
             Assert.Equal("xx   ", result);
+        }
+
+        enum SomeEnum { }
+        class SomeClass { }
+        record SomeRecord { }
+        struct SomeStruct { }
+        [Theory]
+        [InlineData(typeof(string), true)]
+        [InlineData(typeof(DateTime), true)]
+        [InlineData(typeof(DateTimeOffset), true)]
+        [InlineData(typeof(TimeSpan), true)]
+        [InlineData(typeof(Guid), true)]
+        [InlineData(typeof(int), true)]
+        [InlineData(typeof(decimal), true)]
+        [InlineData(typeof(long), true)]
+        [InlineData(typeof(short), true)]
+        [InlineData(typeof(SomeEnum), true)]
+        [InlineData(typeof(byte), true)]
+        [InlineData(typeof(SomeClass), false)]
+        [InlineData(typeof(SomeRecord), false)]
+        [InlineData(typeof(SomeStruct), false)]
+        public void IsSimpleType(Type type, bool expected)
+        {
+            Assert.Equal(expected, type.IsSimpleType());
+        }
+
+        [Theory]
+        [InlineData("", "", 0, 5)]
+        [InlineData("123", "123", 0, 5)]
+        [InlineData("12345", "12345", 0, 5)]
+        [InlineData("123456", "12345", 0, 5)]
+        [InlineData("", "", 1, 5)]
+        [InlineData("123", "23", 1, 5)]
+        [InlineData("12345", "2345", 1, 5)]
+        [InlineData("123456", "3456", 2, 4)]
+        public void SafeSubstring_LongString_ReturnsSameAsSubstring(string input, string expected, int start, int length)
+        {
+            Assert.Equal(expected, input.SafeSubstring(start, length));
+        }
+
+
+        class SomeClass2
+        {
+            public int IntProperty { get; set; }
+            public bool? BoolProperty { get; set; }
+            public string StringProperty { get; set; }
+        }
+
+        [Fact]
+        public void GetOptions_ReturnsOptionsForAllProperties()
+        {
+            var options = typeof(SomeClass2).GetOptions(true);
+            Assert.Equal(new[] { "int-property", "bool-property", "string-property" }, options.Select(o => o.Name).ToArray());
+            Assert.Equal(new[] { typeof(int), typeof(bool?), typeof(string) }, options.Select(o => o.Argument.ArgumentType).ToArray());
+            Assert.Equal(new[] { true, false, false }, options.Select(o => o.IsRequired).ToArray());
         }
     }
 }
