@@ -4,57 +4,41 @@ using System.Data.Common;
 using System.Linq;
 using System.Text;
 
-using static System.Console;
-using static System.ConsoleKey;
 using static SqlConsole.Host.CommandFactory;
+using static System.ConsoleKey;
 
 namespace SqlConsole.Host
 {
-    internal interface ICommand
-    {
-        public void Execute(IQueryHandler queryHandler, QueryOptions options);
-    }
-    internal class SingleQuery : ICommand
-    {
-        public void Execute(IQueryHandler queryHandler, QueryOptions option)
-        {
-            var query = option.GetQuery();
-            try
-            {
-                queryHandler.Execute(query);
-            }
-            catch (DbException e)
-            {
-                ForegroundColor = ConsoleColor.Red;
-                Error.WriteLine(e.Message);
-                ResetColor();
-            }
-        }
 
-    }
     internal class Repl : ICommand
     {
+
+        private IReplConsole _console;
+
+        public Repl() : this(new ReplConsole()) { }
+        public Repl(IReplConsole console) => _console = console;
+
         public void Execute(IQueryHandler queryHandler, QueryOptions options)
         {
             queryHandler.Connect();
-            WriteLine(queryHandler.ConnectionStatus);
+            _console.WriteLine(queryHandler.ConnectionStatus);
             foreach (var command in ReadCommands())
             {
-                if (command.IsAbort) 
+                if (command.IsAbort)
                     break;
 
                 switch (command)
                 {
-                   case Connect:
+                    case Connect:
                         queryHandler.Connect();
-                        WriteLine(queryHandler.ConnectionStatus);
+                        _console.WriteLine(queryHandler.ConnectionStatus);
                         break;
                     case Disconnect:
                         queryHandler.Disconnect();
-                        WriteLine(queryHandler.ConnectionStatus);
+                        _console.WriteLine(queryHandler.ConnectionStatus);
                         break;
                     case Clear:
-                        Console.Clear();
+                        _console.Clear();
                         break;
                     case SqlQuery q:
                         try
@@ -63,22 +47,22 @@ namespace SqlConsole.Host
                         }
                         catch (DbException e)
                         {
-                            ForegroundColor = ConsoleColor.Red;
-                            Error.WriteLine(e.Message);
-                            ResetColor();
+                            _console.ForegroundColor = ConsoleColor.Red;
+                            _console.Error.WriteLine(e.Message);
+                            _console.ResetColor();
                         }
                         break;
                     case Help:
-                        WriteLine("Type your SQL query in the console. A query terminated by a ';' is immediately executed. " +
+                        _console.WriteLine("Type your SQL query in the console. A query terminated by a ';' is immediately executed. " +
                             "A GO statement, a forward slash ('/') on a single line or an empty line will also run the query.");
-                        WriteLine();
-                        WriteLine("commands:");
-                        WriteLine("    help            Show this help message");
-                        WriteLine("    exit, quit      Exit the console");
-                        WriteLine("    connect         Connect to the underlying database");
-                        WriteLine("    disconnect      Disconnect from the database");
-                        WriteLine("    cls             Clear the screen");
-                        WriteLine("");
+                        _console.WriteLine();
+                        _console.WriteLine("commands:");
+                        _console.WriteLine("    help            Show this help message");
+                        _console.WriteLine("    exit, quit      Exit the console");
+                        _console.WriteLine("    connect         Connect to the underlying database");
+                        _console.WriteLine("    disconnect      Disconnect from the database");
+                        _console.WriteLine("    cls             Clear the screen");
+                        _console.WriteLine("");
                         break;
                     case Continue:
                         break;
@@ -87,13 +71,24 @@ namespace SqlConsole.Host
         }
 
         record BaseCommand(bool IsAbort) { }
-        record SqlQuery(string Sql): BaseCommand(false) { }
+        record SqlQuery(string Sql) : BaseCommand(false) { }
         record StopExecution() : BaseCommand(true) { }
         record Connect() : BaseCommand(false) { }
         record Disconnect() : BaseCommand(false) { }
         record Help() : BaseCommand(false) { }
         record Continue() : BaseCommand(false) { }
         record Clear() : BaseCommand(false) { }
+
+        static Dictionary<string, BaseCommand> commands = new()
+        {
+            ["exit"] = new StopExecution(),
+            ["quit"] = new StopExecution(),
+            ["connect"] = new Connect(),
+            ["disconnect"] = new Disconnect(),
+            ["help"] = new Help(),
+            ["cls"] = new Clear(),
+            ["clear"] = new Clear(),
+        };
         IEnumerable<BaseCommand> ReadCommands()
         {
             while (true)
@@ -111,14 +106,10 @@ namespace SqlConsole.Host
             {
                 (IsComplete, _query, Command) = line switch
                 {
-                    "GO" or "/" => (true, _query, new SqlQuery(_query.ToString()) as BaseCommand),
-                    "exit" or "quit" when _query.Length == 0 => (true, _query.Append(line), new StopExecution()),
-                    "disconnect" when _query.Length == 0 => (true, _query.Append(line), new Disconnect()),
-                    "connect" when _query.Length == 0 => (true, _query.Append(line), new Connect()),
-                    "help" when _query.Length == 0 => (true, _query.Append(line), new Help()),
-                    "cls" or "clear" when _query.Length == 0 => (true, _query.Append(line), new Clear()),
+                    "GO" or "/" => (true, _query, new SqlQuery(_query.ToString())),
+                    "" when _query.Length > 0 => (true, _query, new SqlQuery(_query.ToString())),
                     "" when _query.Length == 0 => (true, _query.Append(line), new Continue()),
-                    "" => (true, _query, new SqlQuery(_query.ToString())),
+                    string s when _query.Length == 0 && commands.ContainsKey(s) => (true, _query.Append(s), commands[s]),
                     string s when s.EndsWith(";") => (true, _query, new SqlQuery(_query.AppendLine(s).ToString())),
                     string s => (false, _query.AppendLine(s), null)
                 };
@@ -131,18 +122,18 @@ namespace SqlConsole.Host
             internal BaseCommand? Command { get; private set; }
         }
 
-        
+
 
         BaseCommand ReadCommand()
         {
             var cb = new CommandBuilder();
-            Write("> ");
+            _console.Write("> ");
             while (true)
             {
                 var line = ReadLine();
                 cb.AppendLine(line);
                 if (cb.IsComplete) break;
-                Write("| ");
+                _console.Write("| ");
             }
             return cb.Command!;
         }
@@ -152,19 +143,19 @@ namespace SqlConsole.Host
         string ReadLine()
         {
             var sb = new StringBuilder();
-            int min = CursorLeft;
+            int min = _console.CursorLeft;
             int x = 0;
             int y = 0;
             bool insertMode = false;
 
- 
+
             while (true)
             {
-                var key = new MyConsoleKey(ReadKey(true));
+                var key = new MyConsoleKey(_console.ReadKey());
                 switch (key)
                 {
                     case { Key: Enter }:
-                        Console.WriteLine();
+                        _console.WriteLine();
                         var returnValue = sb.ToString();
                         if (_history.FirstOrDefault() != returnValue)
                             _history.Insert(0, returnValue);
@@ -203,15 +194,15 @@ namespace SqlConsole.Host
 
             void ClearLine()
             {
-                CursorLeft = min;
-                for (int i = 0; i < sb.Length; i++) Write(' ');
-                CursorLeft = min;
+                _console.CursorLeft = min;
+                for (int i = 0; i < sb.Length; i++) _console.Write(' ');
+                _console.CursorLeft = min;
             }
             void WriteLine()
             {
-                CursorLeft = min;
-                for (int i = 0; i < sb.Length; i++) Write(sb[i]);
-                CursorLeft = Math.Min(min + x, min + sb.Length);
+                _console.CursorLeft = min;
+                for (int i = 0; i < sb.Length; i++) _console.Write(sb[i]);
+                _console.CursorLeft = Math.Min(min + x, min + sb.Length);
             }
 
             (StringBuilder, int, int) InsertOrAppend(StringBuilder sb, bool insertMode, char c)

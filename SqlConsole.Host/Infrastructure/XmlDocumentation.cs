@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Reflection;
-using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 using System.Xml;
 
@@ -10,13 +10,20 @@ namespace SqlConsole.Host.Infrastructure
 	public static class XmlDocumentation
 	{
 		internal static System.Collections.Generic.HashSet<Assembly> loadedAssemblies = new System.Collections.Generic.HashSet<Assembly>();
-		internal static System.Collections.Generic.Dictionary<string, string> loadedXmlDocumentation = new System.Collections.Generic.Dictionary<string, string>();
+		internal static ConcurrentDictionary<string, string> loadedXmlDocumentation = new ConcurrentDictionary<string, string>();
 
 		private static void Load(Assembly assembly)
 		{
 			if (loadedAssemblies.Contains(assembly))
 			{
 				return;
+			}
+			lock (loadedAssemblies)
+			{
+				if (loadedAssemblies.Contains(assembly))
+				{
+					return;
+				}
 			}
 			string directoryPath = AppDomain.CurrentDomain.BaseDirectory;
 			string xmlFilePath = Path.Combine(directoryPath, assembly.GetName().Name + ".xml");
@@ -27,7 +34,10 @@ namespace SqlConsole.Host.Infrastructure
 			}
 			// currently marking assembly as loaded even if the XML file was not found
 			// may want to adjust in future, but I think this is good for now
-			loadedAssemblies.Add(assembly);
+			lock (loadedAssemblies)
+			{
+				loadedAssemblies.Add(assembly);
+			}
 		}
 
 		/// <summary>Loads the XML code documentation into memory so it can be accessed by extension methods on reflection types.</summary>
@@ -74,7 +84,10 @@ namespace SqlConsole.Host.Infrastructure
 
 		public static void Clear()
         {
-			loadedAssemblies.Clear();
+			lock (loadedAssemblies)
+			{
+				loadedAssemblies.Clear();
+			}
 			loadedXmlDocumentation.Clear();
         }
 	}
