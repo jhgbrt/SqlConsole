@@ -16,22 +16,28 @@ namespace SqlConsole.Host
         {
             var console = CreateProviderCommands<Repl>()
                 .Aggregate(
-                    new Command("console", "Run an interactive SQL console. Run the help command for a specific provider (console [provider] -h) for more info."), 
+                    new Command("console", 
+                    "Run an interactive SQL console. Run the help command for a specific " +
+                    "provider (console [provider] -h) for more info."), 
                     (parent, child) => parent.WithChildCommand(child)
                     );
 
             var query = CreateProviderCommands<SingleQuery>()
                 .Aggregate(
-                    new Command("query", $"Run an SQL query inline or from a file. Run the help command for a specific provider (console [provider] -h) for more info."), 
+                    new Command("query", 
+                    "Run a SQL query inline or from a file. Run the help command for a specific " +
+                    "provider (query [provider] -h) for more info."), 
                     (parent, child) => parent.WithChildCommand(child.WithArgument(new Argument("query"))
                                              .WithOptions(typeof(QueryOptions).GetOptions()))
                 );
 
             return new RootCommand
             {
-                Description = $"A generic SQL utility tool for running SQL queries, either directly from the commandline or in an interactive console. " +
-                    $"Supports the following providers: {string.Join(",", Provider.All.Select(p => p.Name))}. " +
-                    $"Use the help function of each command for info on how to connect."
+                Description = 
+                    "A generic SQL utility tool for running SQL queries, either directly " +
+                    "from the commandline or in an interactive console. " +
+                    $"Supports the following providers: {string.Join(", ", Provider.All.Select(p => p.Name))}. " +
+                    "Use the help function of each command for info on how to connect."
             }.WithChildCommands(console, query);
         }
         static IEnumerable<Command> CreateProviderCommands<T>() where T: ICommand, new()
@@ -47,7 +53,7 @@ namespace SqlConsole.Host
             where TCommand : ICommand
         {
             var options = provider.ConnectionConfigurationProperties().ToOptions();
-            var command = new Command(provider.Name)
+            return new Command(provider.Name)
             {
                 Handler = CommandHandler.Create((TConnectionStringBuilder builder, QueryOptions options, IConsole console) =>
                 {
@@ -55,8 +61,6 @@ namespace SqlConsole.Host
                     commandHandler.Execute(queryHandler, options);
                 })
             }.WithOptions(options);
-
-            return command;
         }
 
         // builder, options and console are injected by System.CommandLine
