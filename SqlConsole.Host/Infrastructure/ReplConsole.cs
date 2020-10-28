@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 
 namespace SqlConsole.Host
 {
@@ -15,6 +16,6 @@ namespace SqlConsole.Host
         public void ResetColor() => Console.ResetColor();
         public int CursorLeft { get => Console.CursorLeft; set => Console.CursorLeft = value; }
         public void Clear() => Console.Clear();
+        public bool CursorVisible { get => !OperatingSystem.IsWindows() || Console.CursorVisible; set => Console.CursorVisible = value;}
     }
-
 }

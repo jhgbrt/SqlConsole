@@ -1,6 +1,7 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.Threading.Tasks;
+using System;
 
 namespace SqlConsole.Host
 {

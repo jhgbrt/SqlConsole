@@ -87,27 +87,25 @@ namespace SqlConsole.Host.Infrastructure
             _script = input;
             _log = log ?? (s => { });
         }
-        string ToLiteral(string s) => SymbolDisplay.FormatLiteral(s, false);
-
         public IEnumerable<string> Split()
         {
             var state = new ScriptSplitting();
 
             foreach (var c in _script)
             {
-                _log(ToLiteral(state.ToString()));
-                _log(ToLiteral(c.ToString()));
+                _log(state.ToString().ToCSharpLiteral());
+                _log(c.ToString().ToCSharpLiteral());
                 state = state.Next(state, c);
                 if (state.IsComplete)
                 {
                     var script = state.Script.ToString();
-                    _log(ToLiteral(script));
+                    _log($"[  {script}  ]");
                     yield return script;
                     state = state.Clear();
                 }
             }
 
-            _log(state.ToString());
+            _log(state.ToString().ToCSharpLiteral());
 
             var rest = state.FinalScript;
             if (!string.IsNullOrEmpty(rest))

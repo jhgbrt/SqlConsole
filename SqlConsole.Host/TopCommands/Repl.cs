@@ -143,11 +143,11 @@ namespace SqlConsole.Host
         string ReadLine()
         {
             var sb = new StringBuilder();
-            int min = _console.CursorLeft;
+            int left = _console.CursorLeft;
             int x = 0;
             int y = 0;
             bool insertMode = false;
-
+            string prefix = string.Empty;
 
             while (true)
             {
@@ -167,45 +167,46 @@ namespace SqlConsole.Host
                         continue;
                 }
 
-                ClearLine();
-                (sb, x, y) = key switch
+                try
                 {
-                    { IsEscape: true }
-                        => (sb.Clear(), 0, y),
-                    { IsBackspace: true } when x > 0
-                        => (sb.Remove(x - 1, 1), x - 1, y),
-                    { IsDelete: true } when x < sb.Length
-                        => (sb.Remove(x, 1), x, y),
-                    { IsLeftArrow: true } when x > 0 => (sb, x - 1, y),
-                    { IsRightArrow: true } when x < sb.Length
-                        => (sb, x + 1, y),
-                    { IsUpArrow: true } when y < _history.Count
-                        => (sb.Clear().Append(_history[y]), sb.Length, y + 1),
-                    { IsDownArrow: true } when y > 1
-                        => (sb.Clear().Append(_history[y - 2]), sb.Length, y - 1),
-                    { IsTab: true }
-                        => FindInHistory(sb),
-                    { IsControl: false }
-                        => InsertOrAppend(sb, insertMode, key.KeyChar),
-                    _ => (sb, x, y)
-                };
-                WriteLine();
+                    _console.CursorVisible = false;
+                    _console.CursorLeft = left;
+                    for (int i = 0; i < sb.Length; i++) _console.Write(' ');
+                    (sb, prefix, x, y) = key switch
+                    {
+                        { IsEscape: true }
+                            => (sb.Clear(), string.Empty, 0, 0),
+                        { IsBackspace: true } when x > 0
+                            => (sb.Remove(x - 1, 1), string.Empty, x - 1, y),
+                        { IsDelete: true } when x < sb.Length
+                            => (sb.Remove(x, 1), string.Empty, x, y),
+                        { IsLeftArrow: true } when x > 0 
+                            => (sb, string.Empty, x - 1, y),
+                        { IsRightArrow: true } when x < sb.Length
+                            => (sb, string.Empty, x + 1, y),
+                        { IsUpArrow: true } when y < _history.Count
+                            => (sb.Clear().Append(_history[y]), string.Empty, sb.Length, y + 1),
+                        { IsDownArrow: true } when y > 1
+                            => (sb.Clear().Append(_history[y - 2]), string.Empty, sb.Length, y - 1),
+                        { IsDownArrow: true } when y == 0 && _history.Any()
+                            => (sb.Clear().Append(_history[0]), string.Empty, sb.Length, 1),
+                        { IsTab: true }
+                            => FindInHistory(sb, prefix),
+                        { IsControl: false }
+                            => InsertOrAppend(sb, insertMode, key.KeyChar),
+                        _ => (sb, string.Empty, x, y)
+                    };
+                }
+                finally
+                {
+                    _console.CursorLeft = left;
+                    for (int i = 0; i < sb.Length; i++) _console.Write(sb[i]);
+                    _console.CursorLeft = Math.Min(left + x, left + sb.Length);
+                    _console.CursorVisible = true;
+                }
             }
 
-            void ClearLine()
-            {
-                _console.CursorLeft = min;
-                for (int i = 0; i < sb.Length; i++) _console.Write(' ');
-                _console.CursorLeft = min;
-            }
-            void WriteLine()
-            {
-                _console.CursorLeft = min;
-                for (int i = 0; i < sb.Length; i++) _console.Write(sb[i]);
-                _console.CursorLeft = Math.Min(min + x, min + sb.Length);
-            }
-
-            (StringBuilder, int, int) InsertOrAppend(StringBuilder sb, bool insertMode, char c)
+            (StringBuilder, string, int, int) InsertOrAppend(StringBuilder sb, bool insertMode, char c)
             {
                 StringBuilder returnValue;
                 if (x == sb.Length)
@@ -214,21 +215,19 @@ namespace SqlConsole.Host
                     returnValue = sb.Insert(x, c);
                 else
                     returnValue = sb.Replace(sb[x], c, x, 1);
-                return (returnValue, x + 1, y);
+                return (returnValue, string.Empty, x + 1, y);
             }
-            (StringBuilder, int, int) FindInHistory(StringBuilder sb)
+            (StringBuilder, string, int, int) FindInHistory(StringBuilder sb, string prefix)
             {
-                if (_history.Any() && sb.ToString() == _history[y])
-                {
-                    y = y >= _history.Count ? 0 : y + 1;
-                }
+                if (string.IsNullOrEmpty(prefix)) 
+                    prefix = sb.ToString();
                 for (int i = y; i < _history.Count; i++)
-                    if (_history[i].StartsWith(sb.ToString()))
-                        return (sb.Clear().Append(_history[i]), sb.Length, i);
+                    if (_history[i].StartsWith(prefix))
+                        return (sb.Clear().Append(_history[i]), prefix, sb.Length, i + 1);
                 for (int i = 0; i < y; i++)
-                    if (_history[i].StartsWith(sb.ToString()))
-                        return (sb.Clear().Append(_history[i]), sb.Length, i);
-                return (sb, sb.Length, y);
+                    if (_history[i].StartsWith(prefix))
+                        return (sb.Clear().Append(_history[i]), prefix, sb.Length, i + 1);
+                return (sb, prefix, sb.Length, y);
             }
 
         }

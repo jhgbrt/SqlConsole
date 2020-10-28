@@ -1,3 +1,5 @@
+using Microsoft.CodeAnalysis.CSharp;
+
 using SqlConsole.Host.Infrastructure;
 
 using System;
@@ -71,6 +73,9 @@ namespace SqlConsole.Host
         public static IEnumerable<string> SplitOnGo(this string s)
             => new ScriptSplitter(s).Split();
 
+        public static string ToCSharpLiteral<T>(this T s) => SymbolDisplay.FormatLiteral(s?.ToString() ?? string.Empty, false);
+        public static string ToCSharpLiteral(this string s) => SymbolDisplay.FormatLiteral(s, false);
+        public static string ToCSharpLiteral(this char c) => SymbolDisplay.FormatLiteral(c, false);
 
         internal enum State
         {

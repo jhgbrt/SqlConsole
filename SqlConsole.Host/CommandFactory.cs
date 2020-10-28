@@ -4,9 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.CommandLine.IO;
 using System.Data;
 using System.Data.Common;
+using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace SqlConsole.Host
 {
@@ -68,19 +71,54 @@ namespace SqlConsole.Host
         {
             return options switch
             {
-                { AsScalar: true } => new QueryHandler<object>(provider, builder.ConnectionString, console.Out, cb => cb.AsScalar(), new ScalarFormatter()),
-                { AsNonquery: true } => new QueryHandler<int>(provider, builder.ConnectionString, console.Out, cb => cb.AsNonQuery(), new NonQueryFormatter()),
-                _ when options.Output != null => new QueryHandler<DataTable>(provider, builder.ConnectionString, options.GetWriter(console), cb => cb.AsDataTable(), new CsvFormatter()),
-                _ => new QueryHandler<DataTable>(provider, builder.ConnectionString, console.Out, cb => cb.AsDataTable(), new ConsoleTableFormatter(GetWindowWidth(), " | "))
+                { AsScalar: true } => ScalarQueryHandler(provider, builder, options, console),
+                { AsNonquery: true } => NonQueryQueryHandler(provider, builder, options, console),
+                _ when options.Output != null => OutputToFileQueryHandler(provider, builder, options, console),
+                _ => InteractiveQueryHandler(provider, builder, options, console)
             };
             
-            static int GetWindowWidth()
+
+            static IQueryHandler ScalarQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
             {
-                try { return Console.WindowWidth; } catch { return 120; }
+                var formatter = new ScalarFormatter();
+                var connectionString = builder.ConnectionString;
+                var writer = console.Out;
+                Func<CommandBuilder, object> @do = cb => cb.AsScalar();
+                return new QueryHandler<object>(provider, connectionString, writer, @do, formatter);
+            }
+
+            static IQueryHandler NonQueryQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
+            {
+                var formatter = new NonQueryFormatter();
+                var connectionString = builder.ConnectionString;
+                var writer = console.Out;
+                Func<CommandBuilder, int> @do = cb => cb.AsNonQuery();
+                return new QueryHandler<int>(provider, connectionString, writer, @do, formatter);
+            }
+
+            static IQueryHandler OutputToFileQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
+            {
+                var formatter = new CsvFormatter();
+                var connectionString = builder.ConnectionString;
+                var writer = new MyTextWriter(new StreamWriter(options.Output!.OpenWrite(), Encoding.UTF8));
+                Func<CommandBuilder, DataTable> @do = cb => cb.AsDataTable();
+                return new QueryHandler<DataTable>(provider, connectionString, writer, @do, formatter);
+            }
+            static IQueryHandler InteractiveQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
+            {
+                var formatter = new ConsoleTableFormatter(GetWindowWidth(), " | ");
+                var connectionString = builder.ConnectionString;
+                var writer = console.Out;
+                Func<CommandBuilder, DataTable> @do = cb => cb.AsDataTable();
+                return new QueryHandler<DataTable>(provider, connectionString, writer, @do, formatter);
+                static int GetWindowWidth()
+                {
+                    try { return Console.WindowWidth; } catch { return 120; }
+                }
+
             }
         }
 
-      
     }
 
     

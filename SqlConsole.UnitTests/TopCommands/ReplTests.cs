@@ -16,13 +16,11 @@ namespace SqlConsole.UnitTests.TopCommands
         [Theory]
         [InlineData("exit\n")]
         [InlineData("quit\n")]
-        public void ExitOnly_ConnectsAndDoesNothingElse(string command)
+        public void ExitOnly_ConnectsAndDoesNothingElse(string input)
         {
             var queryHandler = Substitute.For<IQueryHandler>();
-            var console = Substitute.For<IReplConsole>();
-            console.ReadKey().ReturnsSequence(command);
+            var repl = CreateRepl(input);
 
-            var repl = new Repl(console);
             repl.Execute(queryHandler, new QueryOptions());
 
             queryHandler.DidNotReceive().Execute(Arg.Any<string>());
@@ -30,13 +28,11 @@ namespace SqlConsole.UnitTests.TopCommands
 
         [Theory]
         [InlineData("connect\nexit\n")]
-        public void Connect_ConnectsAndDoesNothingElse(string command)
+        public void Connect_ConnectsAndDoesNothingElse(string input)
         {
             var queryHandler = Substitute.For<IQueryHandler>();
-            var console = Substitute.For<IReplConsole>();
-            console.ReadKey().ReturnsSequence(command);
+            var repl = CreateRepl(input);
 
-            var repl = new Repl(console);
             repl.Execute(queryHandler, new QueryOptions());
 
             queryHandler.Received().Connect();
@@ -44,13 +40,11 @@ namespace SqlConsole.UnitTests.TopCommands
 
         [Theory]
         [InlineData("disconnect\nexit\n")]
-        public void Disconnect_ConnectsAndDoesNothingElse(string command)
+        public void Disconnect_ConnectsAndDoesNothingElse(string input)
         {
             var queryHandler = Substitute.For<IQueryHandler>();
-            var console = Substitute.For<IReplConsole>();
-            console.ReadKey().ReturnsSequence(command);
+            var repl = CreateRepl(input);
 
-            var repl = new Repl(console);
             repl.Execute(queryHandler, new QueryOptions());
 
             queryHandler.Received().Disconnect();
@@ -64,41 +58,57 @@ namespace SqlConsole.UnitTests.TopCommands
         public void DoQuery_AndExit_ConnectsAndDoesNothingElse(string input, string expected)
         {
             var queryHandler = Substitute.For<IQueryHandler>();
-            var console = Substitute.For<IReplConsole>();
-            console.ReadKey().ReturnsSequence(input);
+            var repl = CreateRepl(input);
 
-            var repl = new Repl(console);
             repl.Execute(queryHandler, new QueryOptions());
 
-            queryHandler.Received().Execute(expected);
+            VerifyReceived(queryHandler, expected);
         }
 
         [Theory]
-        [InlineData("SELECT 1;\nS\t\nexit\n", "SELECT 1;\r\n")]
-        public void Tab_CreatesCompletion(string input, string expected)
+        [InlineData("SELECT 1;\nS\t\nexit\n", "SELECT 1;\r\n", "SELECT 1;\r\n")]
+        public void Tab_CreatesCompletion(string input, params string[] expected)
         {
             var queryHandler = Substitute.For<IQueryHandler>();
-            var console = Substitute.For<IReplConsole>();
-            console.ReadKey().ReturnsSequence(input);
+            var repl = CreateRepl(input);
 
-            var repl = new Repl(console);
             repl.Execute(queryHandler, new QueryOptions());
 
-            queryHandler.Received(2).Execute(expected);
+            VerifyReceived(queryHandler, expected);
+        }
+        [Theory]
+        [InlineData("SELECT 1111;\nSELECT 2\t;\nexit\n", "SELECT 1111;\r\n", "SELECT 2;\r\n")]
+        public void Tab_WhenPrefixUnknown_DoesNothing(string input, params string[] expected)
+        {
+            var queryHandler = Substitute.For<IQueryHandler>();
+            var repl = CreateRepl(input);
+
+            repl.Execute(queryHandler, new QueryOptions());
+
+            VerifyReceived(queryHandler, expected);
+        }
+        [Theory]
+        [InlineData("SELECT 1;\nSELECT 2;\nS\t\t\t\t\nexit\n", "SELECT 1;\r\n", "SELECT 2;\r\n", "SELECT 1;\r\n")]
+        public void MultiTab_CyclesThroughCompletion(string input, params string[] expected)
+        {
+            var queryHandler = Substitute.For<IQueryHandler>();
+            var repl = CreateRepl(input);
+
+            repl.Execute(queryHandler, new QueryOptions());
+
+            VerifyReceived(queryHandler, expected);
         }
 
         [Theory]
-        [InlineData("SELECT 1;\n↑\nexit\n", "SELECT 1;\r\n")]
-        public void UpArrow_RunsPreviousCommand(string input, string expected)
+        [InlineData("SELECT 1;\n↑\nexit\n", "SELECT 1;\r\n", "SELECT 1;\r\n")]
+        public void UpArrow_RunsPreviousCommand(string input, params string[] expected)
         {
             var queryHandler = Substitute.For<IQueryHandler>();
-            var console = Substitute.For<IReplConsole>();
-            console.ReadKey().ReturnsSequence(input);
+            var repl = CreateRepl(input);
 
-            var repl = new Repl(console);
             repl.Execute(queryHandler, new QueryOptions());
 
-            queryHandler.Received(2).Execute(expected);
+            VerifyReceived(queryHandler, expected);
         }
 
         [Theory]
@@ -106,16 +116,42 @@ namespace SqlConsole.UnitTests.TopCommands
         public void UpAndDownArrow_RunsSelectedQueries(string input, params string[] expected)
         {
             var queryHandler = Substitute.For<IQueryHandler>();
-            var console = Substitute.For<IReplConsole>();
-            console.ReadKey().ReturnsSequence(input);
+            var repl = CreateRepl(input);
 
-            var repl = new Repl(console);
             repl.Execute(queryHandler, new QueryOptions());
 
-            foreach (var s in expected)
-                queryHandler.Received().Execute(s);
+            VerifyReceived(queryHandler, expected);
         }
 
+        [Theory]
+        [InlineData("SELD\bECT 1;\nexit\n", "SELECT 1;\r\n")]
+        public void Backspace_RemovesLastCharacter(string input, params string[] expected)
+        {
+            var queryHandler = Substitute.For<IQueryHandler>();
+            var repl = CreateRepl(input);
+
+            repl.Execute(queryHandler, new QueryOptions());
+
+            VerifyReceived(queryHandler, expected);
+        }
+
+        private static Repl CreateRepl(string input)
+        {
+            var console = Substitute.For<IReplConsole>();
+            console.ReadKey().ReturnsSequence(input);
+            var repl = new Repl(console);
+            return repl;
+        }
+
+        private static void VerifyReceived(IQueryHandler queryHandler, params string[] expected)
+        {
+            int i = 0;
+            Received.InOrder(() =>
+            {
+                while (i < expected.Length)
+                    queryHandler.Execute(expected[i++]);
+            });
+        }
     }
 
     static class Extensions
@@ -136,6 +172,7 @@ namespace SqlConsole.UnitTests.TopCommands
             var state = State.NormalKey;
 
             var sb = new StringBuilder();
+
             foreach (var c in chars)
             {
                 if (state == State.NormalKey)
@@ -168,6 +205,8 @@ namespace SqlConsole.UnitTests.TopCommands
                         '\\' => new ConsoleKeyInfo(c, ConsoleKey.Oem5, false, false, false),
                         ']' => new ConsoleKeyInfo(c, ConsoleKey.Oem6, false, false, false),
                         '\'' => new ConsoleKeyInfo(c, ConsoleKey.Oem7, false, false, false),
+                        '=' => new ConsoleKeyInfo(c, ConsoleKey.OemPlus, false, false, false),
+                        //'-' => new ConsoleKeyInfo(c, ConsoleKey.OemMinus, false, false, false),
                         ':' => new ConsoleKeyInfo(c, ConsoleKey.Oem1, true, false, false),
                         '?' => new ConsoleKeyInfo(c, ConsoleKey.Oem2, true, false, false),
                         '~' => new ConsoleKeyInfo(c, ConsoleKey.Oem3, true, false, false),
@@ -184,6 +223,7 @@ namespace SqlConsole.UnitTests.TopCommands
                         '&' => new ConsoleKeyInfo(c, ConsoleKey.D7, true, false, false),
                         '(' => new ConsoleKeyInfo(c, ConsoleKey.D9, true, false, false),
                         ')' => new ConsoleKeyInfo(c, ConsoleKey.D0, true, false, false),
+                        '\b' => new ConsoleKeyInfo(c, ConsoleKey.Backspace, true, false, false),
                         _ when char.IsLetter(c) => new ConsoleKeyInfo(c, Enum.Parse<ConsoleKey>($"{c}".ToUpper()), char.IsUpper(c), false, false),
                         _ when char.IsDigit(c) => new ConsoleKeyInfo(c, Enum.Parse<ConsoleKey>($"D{c}"), char.IsUpper(c), false, false),
                         _ => throw new Exception($"unsupported key character: {c}")

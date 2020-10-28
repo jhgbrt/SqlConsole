@@ -1,8 +1,5 @@
-﻿using System.CommandLine;
-using System.CommandLine.IO;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.IO;
-using System.Text;
 
 namespace SqlConsole.Host
 {
@@ -22,7 +19,6 @@ namespace SqlConsole.Host
             public FileInfo? Output { get; set; }
 
             public string GetQuery() => (Query != null && File.Exists(Query) ? File.ReadAllText(Query) : Query) ?? string.Empty;
-            public IStandardStreamWriter GetWriter(IConsole console) => Output != null ? new MyTextWriter(new StreamWriter(Output.OpenWrite(), Encoding.UTF8)) : console.Out;
         }
     }
 

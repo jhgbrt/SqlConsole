@@ -9,7 +9,11 @@
     <PackAsTool>true</PackAsTool>
     <AssemblyName>sqlc</AssemblyName>
     <PackageId>Net.Code.SqlConsole</PackageId>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Description>A .net core global tool that enables running sql queries, either from an interactive console or directly as a command line option.</Description>
+    <Title>Universal sql console (supports SQL Server, SqLite, Oracle, IBM DB2, MySql, PostGreSQL)</Title>
     <ToolCommandName>sqlc</ToolCommandName>
+    <RepositoryUrl>https://github.com/jhgbrt/SqlConsole</RepositoryUrl>
     <PackageOutputPath>./nupkg</PackageOutputPath>
   </PropertyGroup>
 

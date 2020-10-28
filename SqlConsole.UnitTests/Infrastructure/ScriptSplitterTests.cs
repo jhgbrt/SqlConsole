@@ -34,6 +34,7 @@ namespace SqlConsole.UnitTests.Infrastructure
         [InlineData("GX test", "GX test")]
         [InlineData("GO\r\nGO")]
         [InlineData("// abc\r\n", "// abc\r\n")]
+        [InlineData("/ abc\r\n", "/ abc\r\n")]
         [InlineData("-- abc", "-- abc")]
         [InlineData("/* /* abc\r\n */\r\ngo\r\n -- def*/", "/* /* abc\r\n */\r\n", " -- def*/")]
         [InlineData("foo\r\ngo\r\nbar", "foo\r\n", "bar")]
@@ -54,39 +55,4 @@ namespace SqlConsole.UnitTests.Infrastructure
             Assert.Equal(expected, result);
         }
     }
-
-    record MyRecord(Func<string, MyRecord> SomeAction, string Name, ITestOutputHelper Output)
-    {
-        public MyRecord(string name, ITestOutputHelper helper) : this(null, name, helper)
-        {
-            SomeAction = Log1;
-        }
-        MyRecord Log1(string s)
-        {
-            Output.WriteLine(s + " from Log1: " + SomeAction.Method.Name);
-            return this with { SomeAction = Log2 };
-        }
-        MyRecord Log2(string s)
-        {
-            Output.WriteLine(s + " from Log2: " + SomeAction.Method.Name);
-            return this;
-        }
-    }
-    record MyRecord1(string Name, ITestOutputHelper Output)
-    {
-        public MyRecord1(ITestOutputHelper helper) : this(null, helper)
-        {
-            Name = "Initial Name";
-        }
-        public MyRecord1 Test1(string s)
-        {
-            Output.WriteLine(s + " from Test1");
-            return this with { Name = "Name set in Test1" };
-        }
-        public MyRecord1 Test2(string s)
-        {
-            Output.WriteLine(s + " from Test2");
-            return this;
-        }
-    }    
 }
