@@ -25,7 +25,7 @@ namespace SqlConsole.UnitTests.Visualizers
                 "-- | --------- | --------\r\n" +
                 "1  | John      | Doe     \r\n";
 
-            Assert.Equal(expected, result);
+            Assert.Equal(expected, result, ignoreLineEndingDifferences: true);
         }
         [Fact]
         public void Format_WhenWindowWidthIsNotWideEnough()
@@ -43,7 +43,7 @@ namespace SqlConsole.UnitTests.Visualizers
                 "-- | --------- | --\r\n" +
                 "1  | John      | Do\r\n";
 
-            Assert.Equal(expected, result);
+            Assert.Equal(expected, result, ignoreLineEndingDifferences: true);
         }
         [Fact]
         public void EmptyDataTable_YieldsEmpty()
@@ -56,7 +56,7 @@ namespace SqlConsole.UnitTests.Visualizers
 
             var expected = "";
 
-            Assert.Equal(expected, result);
+            Assert.Equal(expected, result, ignoreLineEndingDifferences: true);
         }
 
         [Fact]
