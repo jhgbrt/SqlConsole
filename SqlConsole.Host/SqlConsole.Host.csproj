@@ -9,23 +9,20 @@
     <PackAsTool>true</PackAsTool>
     <AssemblyName>sqlc</AssemblyName>
     <PackageId>Net.Code.SqlConsole</PackageId>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Description>A .net core global tool that enables running sql queries, either from an interactive console or directly as a command line option.</Description>
-    <Title>Universal sql console (supports SQL Server, SqLite, Oracle, IBM DB2, MySql, PostGreSQL)</Title>
     <ToolCommandName>sqlc</ToolCommandName>
-    <RepositoryUrl>https://github.com/jhgbrt/SqlConsole</RepositoryUrl>
     <PackageOutputPath>./nupkg</PackageOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="IBM.Data.DB2.Core" Version="3.1.0.300" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.8.0-4.final" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="2.1.0-preview1.20235.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.8.0-5.final" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="2.1.0-preview2.20297.7" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="5.0.0-rc.2.20475.6" />
-    <PackageReference Include="MySql.Data" Version="8.0.21" />
+    <PackageReference Include="MySql.Data" Version="8.0.22" />
     <PackageReference Include="Npgsql" Version="5.0.0-preview1" />
-    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="2.19.90" />
+    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="2.19.91" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta1.20371.2" />
+    <PackageReference Include="System.Linq.Async" Version="4.1.1" />
   </ItemGroup>
 
 
