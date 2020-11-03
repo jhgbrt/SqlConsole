@@ -10,7 +10,6 @@
     <AssemblyName>sqlc</AssemblyName>
     <PackageId>Net.Code.SqlConsole</PackageId>
     <ToolCommandName>sqlc</ToolCommandName>
-    <PackageOutputPath>./nupkg</PackageOutputPath>
     <Version>1.0.1-preview.1</Version>
   </PropertyGroup>
 
