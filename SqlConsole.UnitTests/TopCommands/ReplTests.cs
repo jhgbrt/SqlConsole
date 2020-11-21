@@ -149,7 +149,7 @@ namespace SqlConsole.UnitTests.TopCommands
             Received.InOrder(() =>
             {
                 while (i < expected.Length)
-                    queryHandler.Execute(expected[i++]);
+                    queryHandler.Execute(expected[i++].Replace("\r\n", Environment.NewLine));
             });
         }
     }
