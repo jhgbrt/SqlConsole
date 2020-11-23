@@ -1,5 +1,6 @@
 ﻿using NSubstitute;
 using NSubstitute.Core;
+using NSubstitute.ExceptionExtensions;
 
 using SqlConsole.Host;
 using System;
@@ -52,9 +53,11 @@ namespace SqlConsole.UnitTests.TopCommands
 
 
         [Theory]
+        [InlineData("DELECT 1<Home><Insert>S<End>;\nexit\n", "SELECT 1;\r\n")]
         [InlineData("SELECT 1;\nexit\n", "SELECT 1;\r\n")]
-        [InlineData("SED←LECT 1;\nexit\n", "SELECT 1;\r\n")]
-        [InlineData("<Insert>SED←<Delete>LECT 1;\nexit\n", "SELECT 1;\r\n")]
+        [InlineData("<Insert>SED←LECT 1;\nexit\n", "SELECT 1;\r\n")]
+        [InlineData("SL←E→ECT 1;\nexit\n", "SELECT 1;\r\n")]
+        [InlineData("SED←<Delete>LECT 1;\nexit\n", "SELECT 1;\r\n")]
         public void DoQuery_AndExit_ConnectsAndDoesNothingElse(string input, string expected)
         {
             var queryHandler = Substitute.For<IQueryHandler>();
@@ -158,8 +161,8 @@ namespace SqlConsole.UnitTests.TopCommands
     {
         public static ConfiguredCall ReturnsSequence(this ConsoleKeyInfo value, string sequence)
         {
-            var keys = sequence.ToConsoleKeyInfo().ToList();
-            return value.Returns(keys[0], keys.Skip(1).ToArray());
+            var queue = new Queue<ConsoleKeyInfo>(sequence.ToConsoleKeyInfo().ToList());
+            return value.Returns(_ => queue.Dequeue());
         }
 
         enum State

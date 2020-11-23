@@ -146,7 +146,7 @@ namespace SqlConsole.Host
             int left = _console.CursorLeft;
             int x = 0;
             int y = 0;
-            bool insertMode = false;
+            bool insertMode = true;
             string prefix = string.Empty;
 
             while (true)
@@ -164,8 +164,10 @@ namespace SqlConsole.Host
                         return returnValue;
                     case { Key: Insert }:
                         insertMode = !insertMode;
+                        _console.CursorSize = insertMode ? 25 : 100;
                         continue;
                 }
+
 
                 try
                 {
@@ -192,8 +194,12 @@ namespace SqlConsole.Host
                             => (sb.Clear().Append(_history[0]), string.Empty, sb.Length, 1),
                         { IsTab: true }
                             => FindInHistory(sb, prefix),
+                        { IsHome: true }
+                            => (sb, prefix, 0, y),
+                        { IsEnd: true }
+                            => (sb, prefix, sb.Length, y),
                         { IsControl: false }
-                            => InsertOrAppend(sb, insertMode, key.KeyChar),
+                            => InsertOrAppend(sb, insertMode, x, key.KeyChar),
                         _ => (sb, string.Empty, x, y)
                     };
                 }
@@ -206,16 +212,15 @@ namespace SqlConsole.Host
                 }
             }
 
-            (StringBuilder, string, int, int) InsertOrAppend(StringBuilder sb, bool insertMode, char c)
+            (StringBuilder, string, int, int) InsertOrAppend(StringBuilder sb, bool insertMode, int x, char c)
             {
-                StringBuilder returnValue;
                 if (x == sb.Length)
-                    returnValue = sb.Append(c);
+                    sb = sb.Append(c);
                 else if (insertMode)
-                    returnValue = sb.Insert(x, c);
+                    sb = sb.Insert(x, c);
                 else
-                    returnValue = sb.Replace(sb[x], c, x, 1);
-                return (returnValue, string.Empty, x + 1, y);
+                    sb = sb.Replace(sb[x], c, x, 1);
+                return (sb, string.Empty, x + 1, y);
             }
             (StringBuilder, string, int, int) FindInHistory(StringBuilder sb, string prefix)
             {
@@ -246,6 +251,8 @@ namespace SqlConsole.Host
             public bool IsUpArrow => Key == UpArrow;
             public bool IsDownArrow => Key == DownArrow;
             public bool IsTab => Key == Tab;
+            public bool IsHome => Key == Home;
+            public bool IsEnd => Key == End;
         }
     }
 

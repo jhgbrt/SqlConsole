@@ -14,6 +14,7 @@ namespace SqlConsole.Host
         TextWriter Error { get; }
         void ResetColor();
         int CursorLeft { get; set; }
+        int CursorSize { get; set; }
         bool CursorVisible { get; set; }
 
         void Clear();

@@ -14,8 +14,24 @@ namespace SqlConsole.Host
         public TextWriter Error => Console.Error;
         public ConsoleColor ForegroundColor { get => Console.ForegroundColor; set => Console.ForegroundColor = value; }
         public void ResetColor() => Console.ResetColor();
-        public int CursorLeft { get => Console.CursorLeft; set => Console.CursorLeft = value; }
+        public int CursorLeft
+        {
+            get => Console.CursorLeft;
+            set => Console.CursorLeft = value;
+        }
+        public int CursorSize
+        {
+            get => Console.CursorSize;
+            set
+            {
+                if (OperatingSystem.IsWindows()) Console.CursorSize = value;
+            }
+        }
         public void Clear() => Console.Clear();
-        public bool CursorVisible { get => !OperatingSystem.IsWindows() || Console.CursorVisible; set => Console.CursorVisible = value;}
+        public bool CursorVisible 
+        { 
+            get => OperatingSystem.IsWindows() && Console.CursorVisible;
+            set => Console.CursorVisible = value;
+        }
     }
 }
