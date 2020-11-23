@@ -21,7 +21,9 @@ namespace SqlConsole.Host
         public void Execute(IQueryHandler queryHandler, QueryOptions options)
         {
             queryHandler.Connect();
+
             _console.WriteLine(queryHandler.ConnectionStatus);
+
             foreach (var command in ReadCommands())
             {
                 if (command.IsAbort)
@@ -45,11 +47,22 @@ namespace SqlConsole.Host
                         {
                             queryHandler.Execute(q.Sql);
                         }
-                        catch (DbException e)
+                        catch (DbException)
                         {
-                            _console.ForegroundColor = ConsoleColor.Red;
-                            _console.Error.WriteLine(e.Message);
-                            _console.ResetColor();
+                            try
+                            {
+
+                                queryHandler.Disconnect();
+                                queryHandler.Connect();
+                                queryHandler.Execute(q.Sql);
+                            }
+                            catch (DbException e)
+                            {
+
+                                _console.ForegroundColor = ConsoleColor.Red;
+                                _console.Error.WriteLine(e.Message);
+                                _console.ResetColor();
+                            }
                         }
                         break;
                     case Help:
