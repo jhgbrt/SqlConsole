@@ -59,6 +59,7 @@ namespace SqlConsole.UnitTests.IntegrationTests
         [Fact]
         public async Task TestQueryFromFile()
         {
+            if (!OperatingSystem.IsWindows()) return;
             var command = CommandFactory.CreateCommand();
             File.WriteAllText("query.txt", query);
             Assert.True(File.Exists("query.txt"));
