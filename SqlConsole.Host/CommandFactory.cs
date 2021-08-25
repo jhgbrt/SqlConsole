@@ -3,115 +3,112 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 
-namespace SqlConsole.Host
-{
-    static partial class CommandFactory
-    {
-        public static Command CreateCommand()
-        {
-            var console = CreateProviderCommands<Repl>()
-                .Aggregate(
-                    new Command("console", 
-                    "Run an interactive SQL console. Run the help command for a specific " +
-                    "provider (console [provider] -h) for more info."), 
-                    (parent, child) => parent.WithChildCommand(child)
-                    );
+namespace SqlConsole.Host;
 
-            var query = CreateProviderCommands<SingleQuery>()
-                .Aggregate(
-                    new Command("query", 
-                    "Run a SQL query inline or from a file. Run the help command for a specific " +
-                    "provider (query [provider] -h) for more info."), 
-                    (parent, child) => parent.WithChildCommand(child.WithArgument(new Argument("query"))
-                                             .WithOptions(typeof(QueryOptions).GetOptions()))
+static partial class CommandFactory
+{
+    public static Command CreateCommand()
+    {
+        var console = CreateProviderCommands<Repl>()
+            .Aggregate(
+                new Command("console",
+                "Run an interactive SQL console. Run the help command for a specific " +
+                "provider (console [provider] -h) for more info."),
+                (parent, child) => parent.WithChildCommand(child)
                 );
 
-            return new RootCommand
-            {
-                Description = 
-                    "A generic SQL utility tool for running SQL queries, either directly " +
-                    "from the commandline or in an interactive console. " +
-                    $"Supports the following providers: {string.Join(", ", Provider.All.Select(p => p.Name))}. " +
-                    "Use the help function of each command for info on how to connect."
-            }.WithChildCommands(console, query);
-        }
-        static IEnumerable<Command> CreateProviderCommands<T>() where T: ICommand, new()
-            => (
-                from dynamic p in Provider.All
-                select CreateCommand(p, new T())
-                )
-                .OfType<Command>();
+        var query = CreateProviderCommands<SingleQuery>()
+            .Aggregate(
+                new Command("query",
+                "Run a SQL query inline or from a file. Run the help command for a specific " +
+                "provider (query [provider] -h) for more info."),
+                (parent, child) => parent.WithChildCommand(child.WithArgument(new Argument("query"))
+                                         .WithOptions(typeof(QueryOptions).GetOptions()))
+            );
 
-        static Command CreateCommand<TConnectionStringBuilder, TCommand>(
-            Provider<TConnectionStringBuilder> provider, TCommand commandHandler)
-            where TConnectionStringBuilder : DbConnectionStringBuilder
-            where TCommand : ICommand
+        return new RootCommand
         {
-            var options = provider.ConnectionConfigurationProperties().ToOptions();
-            return new Command(provider.Name)
-            {
-                Handler = CommandHandler.Create((TConnectionStringBuilder builder, QueryOptions options, IConsole console) =>
-                {
-                    using var queryHandler = CreateQueryHandler(provider, builder, options, console);
-                    commandHandler.Execute(queryHandler, options);
-                })
-            }.WithOptions(options);
-        }
+            Description =
+                "A generic SQL utility tool for running SQL queries, either directly " +
+                "from the commandline or in an interactive console. " +
+                $"Supports the following providers: {string.Join(", ", Provider.All.Select(p => p.Name))}. " +
+                "Use the help function of each command for info on how to connect."
+        }.WithChildCommands(console, query);
+    }
+    static IEnumerable<Command> CreateProviderCommands<T>() where T : ICommand, new()
+        => (
+            from dynamic p in Provider.All
+            select CreateCommand(p, new T())
+            )
+            .OfType<Command>();
 
-        // builder, options and console are injected by System.CommandLine
-        private static IQueryHandler CreateQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
+    static Command CreateCommand<TConnectionStringBuilder, TCommand>(
+        Provider<TConnectionStringBuilder> provider, TCommand commandHandler)
+        where TConnectionStringBuilder : DbConnectionStringBuilder
+        where TCommand : ICommand
+    {
+        var options = provider.ConnectionConfigurationProperties().ToOptions();
+        return new Command(provider.Name)
         {
-            return options switch
+            Handler = CommandHandler.Create((TConnectionStringBuilder builder, QueryOptions options, IConsole console) =>
             {
-                { AsScalar: true } => ScalarQueryHandler(provider, builder, options, console),
-                { AsNonquery: true } => NonQueryQueryHandler(provider, builder, options, console),
-                _ when options.Output != null => OutputToFileQueryHandler(provider, builder, options, console),
-                _ => InteractiveQueryHandler(provider, builder, options, console)
-            };
-            
-
-            static IQueryHandler ScalarQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
-            {
-                var formatter = new ScalarFormatter();
-                var connectionString = builder.ConnectionString;
-                var writer = console.Out;
-                Func<CommandBuilder, object> @do = cb => cb.AsScalar();
-                return new QueryHandler<object>(provider, connectionString, writer, @do, formatter);
-            }
-
-            static IQueryHandler NonQueryQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
-            {
-                var formatter = new NonQueryFormatter();
-                var connectionString = builder.ConnectionString;
-                var writer = console.Out;
-                Func<CommandBuilder, int> @do = cb => cb.AsNonQuery();
-                return new QueryHandler<int>(provider, connectionString, writer, @do, formatter);
-            }
-
-            static IQueryHandler OutputToFileQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
-            {
-                var formatter = new CsvFormatter();
-                var connectionString = builder.ConnectionString;
-                var writer = new MyTextWriter(new StreamWriter(options.Output!.OpenWrite(), Encoding.UTF8));
-                Func<CommandBuilder, DataTable> @do = cb => cb.AsDataTable();
-                return new QueryHandler<DataTable>(provider, connectionString, writer, @do, formatter);
-            }
-            static IQueryHandler InteractiveQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
-            {
-                var formatter = new ConsoleTableFormatter(GetWindowWidth(), " | ");
-                var connectionString = builder.ConnectionString;
-                var writer = console.Out;
-                Func<CommandBuilder, DataTable> @do = cb => cb.AsDataTable();
-                return new QueryHandler<DataTable>(provider, connectionString, writer, @do, formatter);
-                static int GetWindowWidth()
-                {
-                    try { return Console.WindowWidth; } catch { return 120; }
-                }
-
-            }
-        }
-
+                using var queryHandler = CreateQueryHandler(provider, builder, options, console);
+                commandHandler.Execute(queryHandler, options);
+            })
+        }.WithOptions(options);
     }
 
-    
+    // builder, options and console are injected by System.CommandLine
+    private static IQueryHandler CreateQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
+    {
+        return options switch
+        {
+            { AsScalar: true } => ScalarQueryHandler(provider, builder, options, console),
+            { AsNonquery: true } => NonQueryQueryHandler(provider, builder, options, console),
+            _ when options.Output != null => OutputToFileQueryHandler(provider, builder, options, console),
+            _ => InteractiveQueryHandler(provider, builder, options, console)
+        };
+
+
+        static IQueryHandler ScalarQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
+        {
+            var formatter = new ScalarFormatter();
+            var connectionString = builder.ConnectionString;
+            var writer = console.Out;
+            Func<CommandBuilder, object> @do = cb => cb.AsScalar();
+            return new QueryHandler<object>(provider, connectionString, writer, @do, formatter);
+        }
+
+        static IQueryHandler NonQueryQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
+        {
+            var formatter = new NonQueryFormatter();
+            var connectionString = builder.ConnectionString;
+            var writer = console.Out;
+            Func<CommandBuilder, int> @do = cb => cb.AsNonQuery();
+            return new QueryHandler<int>(provider, connectionString, writer, @do, formatter);
+        }
+
+        static IQueryHandler OutputToFileQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
+        {
+            var formatter = new CsvFormatter();
+            var connectionString = builder.ConnectionString;
+            var writer = new MyTextWriter(new StreamWriter(options.Output!.OpenWrite(), Encoding.UTF8));
+            Func<CommandBuilder, DataTable> @do = cb => cb.AsDataTable();
+            return new QueryHandler<DataTable>(provider, connectionString, writer, @do, formatter);
+        }
+        static IQueryHandler InteractiveQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
+        {
+            var formatter = new ConsoleTableFormatter(GetWindowWidth(), " | ");
+            var connectionString = builder.ConnectionString;
+            var writer = console.Out;
+            Func<CommandBuilder, DataTable> @do = cb => cb.AsDataTable();
+            return new QueryHandler<DataTable>(provider, connectionString, writer, @do, formatter);
+            static int GetWindowWidth()
+            {
+                try { return Console.WindowWidth; } catch { return 120; }
+            }
+
+        }
+    }
+
 }

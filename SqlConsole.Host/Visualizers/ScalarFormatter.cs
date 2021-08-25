@@ -1,10 +1,9 @@
-namespace SqlConsole.Host
+namespace SqlConsole.Host;
+
+class ScalarFormatter : ITextFormatter<object>
 {
-    class ScalarFormatter : ITextFormatter<object>
+    public IEnumerable<string> Format(object item)
     {
-        public IEnumerable<string> Format(object item)
-        {
-            yield return item?.ToString() ?? string.Empty;
-        }
+        yield return item?.ToString() ?? string.Empty;
     }
 }

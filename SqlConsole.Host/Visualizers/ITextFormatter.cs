@@ -1,7 +1,6 @@
-namespace SqlConsole.Host
+namespace SqlConsole.Host;
+
+interface ITextFormatter<T>
 {
-    interface ITextFormatter<T>
-    {
-        IEnumerable<string> Format(T item);
-    }
+    IEnumerable<string> Format(T item);
 }
