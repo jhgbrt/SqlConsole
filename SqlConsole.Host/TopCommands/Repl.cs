@@ -7,7 +7,7 @@ namespace SqlConsole.Host;
 internal class Repl : ICommand
 {
 
-    private IReplConsole _console;
+    private readonly IReplConsole _console;
 
     public Repl() : this(new ReplConsole()) { }
     public Repl(IReplConsole console) => _console = console;
@@ -86,7 +86,7 @@ internal class Repl : ICommand
     record Continue() : BaseCommand(false) { }
     record Clear() : BaseCommand(false) { }
 
-    static Dictionary<string, BaseCommand> commands = new()
+    static readonly Dictionary<string, BaseCommand> commands = new()
     {
         ["exit"] = new StopExecution(),
         ["quit"] = new StopExecution(),
@@ -107,7 +107,7 @@ internal class Repl : ICommand
 
     class CommandBuilder
     {
-        StringBuilder _query = new StringBuilder();
+        StringBuilder _query = new();
 
         public CommandBuilder AppendLine(string line)
         {
@@ -145,7 +145,7 @@ internal class Repl : ICommand
         return cb.Command!;
     }
 
-    List<string> _history = new List<string>();
+    readonly List<string> _history = new();
 
     string ReadLine()
     {

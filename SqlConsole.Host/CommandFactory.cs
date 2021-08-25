@@ -75,7 +75,7 @@ static partial class CommandFactory
             var formatter = new ScalarFormatter();
             var connectionString = builder.ConnectionString;
             var writer = console.Out;
-            Func<CommandBuilder, object> @do = cb => cb.AsScalar();
+            static object @do(CommandBuilder cb) => cb.AsScalar();
             return new QueryHandler<object>(provider, connectionString, writer, @do, formatter);
         }
 
@@ -84,7 +84,7 @@ static partial class CommandFactory
             var formatter = new NonQueryFormatter();
             var connectionString = builder.ConnectionString;
             var writer = console.Out;
-            Func<CommandBuilder, int> @do = cb => cb.AsNonQuery();
+            static int @do(CommandBuilder cb) => cb.AsNonQuery();
             return new QueryHandler<int>(provider, connectionString, writer, @do, formatter);
         }
 
@@ -93,7 +93,7 @@ static partial class CommandFactory
             var formatter = new CsvFormatter();
             var connectionString = builder.ConnectionString;
             var writer = new MyTextWriter(new StreamWriter(options.Output!.OpenWrite(), Encoding.UTF8));
-            Func<CommandBuilder, DataTable> @do = cb => cb.AsDataTable();
+            static DataTable @do(CommandBuilder cb) => cb.AsDataTable();
             return new QueryHandler<DataTable>(provider, connectionString, writer, @do, formatter);
         }
         static IQueryHandler InteractiveQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
@@ -101,7 +101,7 @@ static partial class CommandFactory
             var formatter = new ConsoleTableFormatter(GetWindowWidth(), " | ");
             var connectionString = builder.ConnectionString;
             var writer = console.Out;
-            Func<CommandBuilder, DataTable> @do = cb => cb.AsDataTable();
+            static DataTable @do(CommandBuilder cb) => cb.AsDataTable();
             return new QueryHandler<DataTable>(provider, connectionString, writer, @do, formatter);
             static int GetWindowWidth()
             {

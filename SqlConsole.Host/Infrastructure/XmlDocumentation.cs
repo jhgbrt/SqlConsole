@@ -7,8 +7,8 @@ namespace SqlConsole.Host.Infrastructure;
 
 public static class XmlDocumentation
 {
-    internal static System.Collections.Generic.HashSet<Assembly> loadedAssemblies = new System.Collections.Generic.HashSet<Assembly>();
-    internal static ConcurrentDictionary<string, string> loadedXmlDocumentation = new ConcurrentDictionary<string, string>();
+    internal static HashSet<Assembly> loadedAssemblies = new();
+    internal static ConcurrentDictionary<string, string> loadedXmlDocumentation = new();
 
     private static void Load(Assembly assembly)
     {
@@ -27,7 +27,7 @@ public static class XmlDocumentation
         string xmlFilePath = Path.Combine(directoryPath, assembly.GetName().Name + ".xml");
         if (File.Exists(xmlFilePath))
         {
-            using StreamReader streamReader = new StreamReader(xmlFilePath);
+            using StreamReader streamReader = new(xmlFilePath);
             Load(streamReader);
         }
         // currently marking assembly as loaded even if the XML file was not found

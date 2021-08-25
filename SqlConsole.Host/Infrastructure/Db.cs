@@ -10,6 +10,8 @@ using System.Dynamic;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
+#pragma warning disable 
+
 namespace Net.Code.ADONet
 {
     using static DBNullHelper;

@@ -75,8 +75,8 @@ record ScriptSplitting(StringBuilder Script, StringBuilder Buffer, char Quote, b
 
 class ScriptSplitter
 {
-    string _script;
-    Action<string> _log;
+    readonly string _script;
+    readonly Action<string> _log;
     public ScriptSplitter(string input, Action<string>? log = null)
     {
         _script = input;

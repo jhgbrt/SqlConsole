@@ -14,14 +14,16 @@ namespace SqlConsole.Host;
 using static SqlConsole.Host.Extension.State;
 public static class Extension
 {
+#pragma warning disable CA2211 // Non-constant fields should not be visible
     public static Action<string> Log = s => { };
+#pragma warning restore CA2211 // Non-constant fields should not be visible
 
     // argument list is used for type inference
     // ReSharper disable once UnusedParameter.Local
-#pragma warning disable RCS1175 // Unused this parameter.
+#pragma warning disable IDE0060 // Remove unused parameter
     static LambdaComparer<T> CompareBy<T>(this IEnumerable<T> list, Func<T?, int> f)
-        => new LambdaComparer<T>(f);
-#pragma warning restore RCS1175 // Unused this parameter.
+#pragma warning restore IDE0060 // Remove unused parameter
+        => new(f);
 
     public static Dictionary<DataColumn, int> ColumnLengths(this DataTable dt, int totalWidth, int separatorSize)
     {
@@ -195,7 +197,7 @@ public static class Extension
         return b;
     }
 
-    static readonly ConcurrentDictionary<Type, bool> IsSimpleTypeCache = new ConcurrentDictionary<Type, bool>();
+    static readonly ConcurrentDictionary<Type, bool> IsSimpleTypeCache = new();
 
     public static bool IsSimpleType(this Type type)
     {
