@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO;
-
-namespace SqlConsole.Host
+﻿namespace SqlConsole.Host
 {
     internal interface IReplConsole
     {

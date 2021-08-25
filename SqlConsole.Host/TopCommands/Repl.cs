@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data.Common;
-using System.Linq;
-using System.Text;
-
+﻿
 using static SqlConsole.Host.CommandFactory;
 using static System.ConsoleKey;
 

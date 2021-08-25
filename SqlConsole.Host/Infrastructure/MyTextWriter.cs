@@ -1,7 +1,4 @@
-﻿
-using System;
-using System.CommandLine.IO;
-using System.IO;
+﻿using System.CommandLine.IO;
 
 namespace SqlConsole.Host
 {

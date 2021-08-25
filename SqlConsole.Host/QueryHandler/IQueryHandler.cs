@@ -1,5 +1,3 @@
-using System;
-
 namespace SqlConsole.Host
 {
     interface IQueryHandler : IDisposable

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace SqlConsole.Host
 {
     class ScalarFormatter : ITextFormatter<object>

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace SqlConsole.Host
 {
     class LambdaComparer<T> : IComparer<T>

@@ -1,8 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Text;
-
-namespace SqlConsole.Host
+﻿namespace SqlConsole.Host
 {
     internal class ReplConsole : IReplConsole
     {

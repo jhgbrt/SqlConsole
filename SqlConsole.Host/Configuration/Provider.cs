@@ -4,10 +4,7 @@ using MySql.Data.MySqlClient;
 using Net.Code.ADONet;
 using Npgsql;
 using Oracle.ManagedDataAccess.Client;
-using System.Data.Common;
 using Microsoft.Data.SqlClient;
-using System.Linq;
-using System.Collections.Generic;
 using System.Reflection;
 
 namespace SqlConsole.Host

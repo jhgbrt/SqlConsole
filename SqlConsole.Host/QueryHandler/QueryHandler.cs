@@ -1,6 +1,4 @@
-using System;
 using System.CommandLine.IO;
-using System.Data;
 
 using Net.Code.ADONet;
 

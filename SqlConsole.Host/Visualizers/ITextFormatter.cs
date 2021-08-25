@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace SqlConsole.Host
 {
     interface ITextFormatter<T>

@@ -2,17 +2,11 @@ using Microsoft.CodeAnalysis.CSharp;
 
 using SqlConsole.Host.Infrastructure;
 
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.CommandLine;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.Data;
-using System.Data.Common;
-using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Xml.Linq;
 
 namespace SqlConsole.Host

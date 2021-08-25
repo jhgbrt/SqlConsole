@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.IO;
+﻿using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml;
 
 namespace SqlConsole.Host.Infrastructure
 {
-	public static class XmlDocumentation
+    public static class XmlDocumentation
 	{
 		internal static System.Collections.Generic.HashSet<Assembly> loadedAssemblies = new System.Collections.Generic.HashSet<Assembly>();
 		internal static ConcurrentDictionary<string, string> loadedXmlDocumentation = new ConcurrentDictionary<string, string>();

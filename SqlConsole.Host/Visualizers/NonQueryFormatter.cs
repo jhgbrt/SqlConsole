@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace SqlConsole.Host
 {
     class NonQueryFormatter : ITextFormatter<int>

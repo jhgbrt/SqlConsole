@@ -1,9 +1,4 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
-
-using System;
-using System.Collections.Generic;
-using System.Text;
-using static System.Char;
+﻿using static System.Char;
 
 namespace SqlConsole.Host.Infrastructure
 {
