@@ -238,7 +238,7 @@ namespace SqlConsole.UnitTests.Infrastructure
         {
             var options = typeof(SomeClass2).GetOptions(true);
             Assert.Equal(new[] { "int-property", "bool-property", "string-property" }, options.Select(o => o.Name).ToArray());
-            Assert.Equal(new[] { typeof(int), typeof(bool?), typeof(string) }, options.Select(o => o.Argument.ArgumentType).ToArray());
+            Assert.Equal(new[] { typeof(int), typeof(bool?), typeof(string) }, options.Select(o => o.ValueType).ToArray());
             Assert.Equal(new[] { true, false, false }, options.Select(o => o.IsRequired).ToArray());
         }
     }

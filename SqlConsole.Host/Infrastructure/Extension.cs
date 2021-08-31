@@ -230,10 +230,9 @@ public static class Extension
                                   ?? property.GetDescriptionFromDocumentation()
                                   ?? property.Name.ToSentence()
                    let required = property.GetAttribute<RequiredAttribute>() != null || (nonNullableMeansRequired && property.PropertyType.IsValueType && !property.PropertyType.IsNullableType())
-                   select new Option($"--{property.Name.ToHyphenedString()}", description)
+                   select new Option($"--{property.Name.ToHyphenedString()}", description, argumentType: property.PropertyType)
                    {
                        IsRequired = required,
-                       Argument = new Argument { ArgumentType = property.PropertyType }
                    };
         }
         finally

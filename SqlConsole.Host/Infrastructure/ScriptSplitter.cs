@@ -74,9 +74,9 @@ struct ScriptSplittingState
 class ScriptSplitter
 {
     private readonly string _script;
-    private Action<string> _log;
+    private Action<string>? _log;
 
-    public ScriptSplitter(string script, Action<string> log = null)
+    public ScriptSplitter(string script, Action<string>? log = null)
     {
         _script = script;
         _log = log;
