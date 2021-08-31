@@ -1,114 +1,110 @@
-﻿using static System.Char;
+﻿using SqlConsole.Host;
 
-namespace SqlConsole.Host.Infrastructure;
-
-record ScriptSplitting(StringBuilder Script, StringBuilder Buffer, char Quote, bool IsComplete)
+struct ScriptSplittingState
 {
-    public ScriptSplitting() : this(new StringBuilder(), new StringBuilder(), '\0', false) { }
-    public string State => Next.Method.Name;
-
-    internal Func<ScriptSplitting, char, ScriptSplitting> Next { get; init; } = InScript;
-    internal string FinalScript => new StringBuilder().Append(Script).Append(Next == Go ? string.Empty : Buffer).ToString();
-    internal ScriptSplitting Clear() => this with { Script = Script.Clear(), Buffer = Buffer.Clear(), IsComplete = false };
-
-    ScriptSplitting AppendToScript(char c) => this with { Script = Script.Append(Buffer).Append(c), Buffer = Buffer.Clear() };
-    ScriptSplitting AppendToBuffer(char c) => this with { Buffer = Buffer.Append(c) };
-
-    static ScriptSplitting InScript(ScriptSplitting state, char c) => c switch
+    internal string Script
     {
-        '\'' or '\"' => state.AppendToScript(c) with { Next = InQuote, Quote = c },
-        '/' or '-' => state.AppendToBuffer(c) with { Next = MaybeComment },
-        'G' or 'g' when state.Script.Length == 0 || IsWhiteSpace(state.Script[^1]) => state.AppendToBuffer(c) with { Next = MaybeGo },
-        _ => state.AppendToScript(c)
+        get
+        {
+            var result = _script.ToString();
+            _script.Clear();
+            return result;
+        }
+    }
+    char? Quote {  get; init; }
+    private StringBuilder _script = new();
+    private StringBuilder _buffer = new();
+    internal string State => MoveNextImpl.Method.Name;
+
+    private ScriptSplittingState Append(char c) { _script.Append(_buffer).Append(c); _buffer.Clear(); return this; }
+    private ScriptSplittingState Buffer(char c)  { _buffer = _buffer.Append(c); return this; }
+    private ScriptSplittingState ClearBuffer() { _buffer.Clear(); return this; }
+
+    private ScriptSplittingState TransitionTo(Func<ScriptSplittingState, char, char, char, (ScriptSplittingState, bool)> state) => this with { MoveNextImpl = state };
+    private ScriptSplittingState TransitionToGo(char b) => ClearBuffer().TransitionTo(Go);
+    private ScriptSplittingState TransitionToNoGo(char b) => Append(b).TransitionTo(NoGo);
+    private ScriptSplittingState TransitionToHandleQuote(char b) => Append(b).TransitionTo(HandleQuote) with { Quote = b };
+    private ScriptSplittingState TransitionToCheckingGo(char b) => Buffer(b).TransitionTo(CheckingGo);
+    private ScriptSplittingState TransitionToMultilineComment(char b) => Append(b).TransitionTo(MultilineComment);
+    private ScriptSplittingState TransitionToHandleScript(char b) => Append(b).TransitionTo(HandleScript);
+    private ScriptSplittingState TransitionToHandleScript() => ClearBuffer().TransitionTo(HandleScript);
+    private Func<ScriptSplittingState, char, char, char, (ScriptSplittingState, bool)> MoveNextImpl { get; set; } = HandleScript;
+    public (ScriptSplittingState, bool) MoveNext(char a, char b, char c) => MoveNextImpl(this, a, b, c);
+
+    private static (ScriptSplittingState, bool) HandleScript(ScriptSplittingState current, char a, char b, char c) => (a, b, c) switch
+    {
+        (_, '/', '*') => (current.TransitionToMultilineComment(b), false),
+        (_, '\'' or '\"', _) => (current.TransitionToHandleQuote(b), false),
+        (_, 'G' or 'g', 'O' or 'o') => (current.TransitionToCheckingGo(b), false),
+        _ => (current.Append(b), false)
     };
 
-    static ScriptSplitting MaybeGo(ScriptSplitting state, char c) => c switch
+    private static (ScriptSplittingState, bool) MultilineComment(ScriptSplittingState current, char a, char b, char c) => (a, b, c) switch
     {
-        'O' or 'o' => state with { Next = Go },
-        _ => state.AppendToScript(c) with { Next = InScript }
+        ('*', '/', _) => (current.TransitionToHandleScript(b), false),
+        _ => (current.Append(b), false)
     };
 
-    static ScriptSplitting Go(ScriptSplitting state, char c) => c switch
+    private static (ScriptSplittingState, bool) HandleQuote(ScriptSplittingState current, char a, char b, char c) => (a, b, c) switch
     {
-        '\r' or '\n' => state with { Buffer = state.Buffer.Clear(), Next = AfterGo, IsComplete = state.Script.Length > 0 },
-        _ => state.AppendToBuffer(c)
+        (_, char y, _) when y == current.Quote => (current.TransitionToHandleScript(b), false),
+        _ => (current.Append(b), false)
+    };
+    private static (ScriptSplittingState, bool) CheckingGo(ScriptSplittingState current, char a, char b, char c) => (a, b, c) switch
+    {
+        ('G' or 'g', 'O' or 'o', '\r' or '\n') => (current.TransitionToGo(b), false),
+        (_, '-', '-') or (_, '/', '/') when current._buffer.Trim().ToUpperInvariant() == "GO" => (current.TransitionToGo(b), false),
+        (_, _, char n) when char.IsLetterOrDigit(n) => (current.TransitionToNoGo(b), false),
+        (_, _, '\n') => (current.TransitionToGo(b), false),
+        _ => (current.Buffer(b), false),
+    };
+    private static (ScriptSplittingState, bool) NoGo(ScriptSplittingState current, char a, char b, char c) => (a, b, c) switch
+    {
+        (_, not '\n', _) => (current.Append(b), false),
+        _ => (current.TransitionToHandleScript(b), false)
     };
 
-    static ScriptSplitting AfterGo(ScriptSplitting state, char c) => c switch
+    private static (ScriptSplittingState, bool) Go(ScriptSplittingState current, char a, char b, char c) => (a, b, c) switch
     {
-        'G' or 'g' => state.AppendToBuffer(c) with { Next = MaybeGo },
-        '\r' or '\n' => state,
-        _ => state.AppendToScript(c) with { Next = InScript },
-    };
-
-    static ScriptSplitting MaybeComment(ScriptSplitting state, char c) => (state.Buffer[0], c) switch
-    {
-        ('/', '/') or ('-', '-') => state.AppendToBuffer(c) with { Next = SingleLineComment },
-        ('/', '*') => state.AppendToBuffer(c) with { Next = MultiLineComment },
-        _ => state.AppendToScript(c) with { Next = InScript }
-    };
-
-    static ScriptSplitting SingleLineComment(ScriptSplitting state, char c) => c switch
-    {
-        '\r' or '\n' => state.AppendToScript(c) with { Next = InScript },
-        _ => state.AppendToBuffer(c)
-    };
-
-    static ScriptSplitting MultiLineComment(ScriptSplitting state, char c) => (state.Buffer[^1], c) switch
-    {
-        ('*', '/') => state.AppendToScript(c) with { Next = InScript },
-        _ => state.AppendToBuffer(c)
-    };
-
-    static ScriptSplitting EndQuote(ScriptSplitting state, char c) => c switch
-    {
-        char x when x == state.Quote => state.AppendToScript(c) with { Next = InQuote },
-        _ => state.AppendToScript(c) with { Next = InScript }
-    };
-
-    static ScriptSplitting InQuote(ScriptSplitting state, char c) => c switch
-    {
-        char x when x == state.Quote => state.AppendToScript(c) with { Next = EndQuote },
-        _ => state.AppendToScript(c)
+        (_, not '\n', _) => (current, false),
+        _ => (current.TransitionToHandleScript(), true)
     };
 }
 
 class ScriptSplitter
 {
-    readonly string _script;
-    readonly Action<string> _log;
-    public ScriptSplitter(string input, Action<string>? log = null)
+    private readonly string _script;
+    private Action<string> _log;
+
+    public ScriptSplitter(string script, Action<string> log = null)
     {
-        _script = input;
-        _log = log ?? (s => { });
+        _script = script;
+        _log = log;
     }
+
     public IEnumerable<string> Split()
     {
-        var state = new ScriptSplitting();
-
-        foreach (var c in _script)
+        var s = new ScriptSplittingState();
+        for (int i = 0; i < _script.Length; i++)
         {
-            _log(state.ToString().ToCSharpLiteral());
-            _log(c.ToString().ToCSharpLiteral());
-            state = state.Next(state, c);
-            if (state.IsComplete)
+            var a = i > 0 ? _script[i - 1] : '\0';
+            var b = _script[i];
+            var c = i < _script.Length - 1 ? _script[i + 1] : '\0';
+            (var next, var yield) = s.MoveNext(a, b, c);
+            _log?.Invoke($"({s.State}, {a},{b},{c}) -> ({next.State}, {yield})".ToCSharpLiteral());
+            _log?.Invoke($"{s}");
+            s = next;
+            if (yield || i == _script.Length - 1)
             {
-                var script = state.Script.ToString();
-                _log($"[  {script}  ]");
-                yield return script;
-                state = state.Clear();
+                var result = s.Script;
+                if (result.Length > 0)
+                    yield return result;
             }
         }
-
-        _log(state.ToString().ToCSharpLiteral());
-
-        var rest = state.FinalScript;
-        if (!string.IsNullOrEmpty(rest))
-        {
-            yield return rest;
-        }
-
     }
+}
 
-
+static class Formatting
+{
+    public static string Trim(this StringBuilder sb) => sb.ToString().Trim();
 }

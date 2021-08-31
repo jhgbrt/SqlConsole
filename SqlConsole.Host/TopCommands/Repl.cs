@@ -137,8 +137,7 @@ internal class Repl : ICommand
         _console.Write("> ");
         while (true)
         {
-            var line = ReadLine();
-            cb.AppendLine(line);
+            cb.AppendLine(ReadLine());
             if (cb.IsComplete) break;
             _console.Write("| ");
         }

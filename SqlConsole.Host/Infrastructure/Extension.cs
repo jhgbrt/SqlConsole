@@ -81,10 +81,8 @@ public static class Extension
         WhiteSpace
     }
 
-    struct Char
+    record struct Char(char Value)
     {
-        public Char(char c) { Value = c; }
-        public char Value { get; init; }
         public bool IsLower => char.IsLower(Value);
         public bool IsUpper => char.IsUpper(Value);
         public bool IsDigit => char.IsDigit(Value);
@@ -105,12 +103,9 @@ public static class Extension
         {
             (state, sb) = (state, new Char(c)) switch
             {
-                (UpperCase, { IsLower: true }) => (LowerCase, sb),
-                (UpperCase, { IsDigit: true }) => (Digit, sb),
-                (LowerCase, { IsUpper: true }) => (UpperCase, sb.Append('-')),
-                (LowerCase, { IsDigit: true }) => (Digit, sb),
-                (Digit, { IsLower: true }) => (LowerCase, sb),
-                (Digit, { IsUpper: true }) => (UpperCase, sb.Append('-')),
+                (UpperCase or Digit, { IsLower: true }) => (LowerCase, sb),
+                (UpperCase or LowerCase, { IsDigit: true }) => (Digit, sb),
+                (LowerCase or Digit, { IsUpper: true }) => (UpperCase, sb.Append('-')),
                 _ => (state, sb)
             };
             if (char.IsLetterOrDigit(c))
