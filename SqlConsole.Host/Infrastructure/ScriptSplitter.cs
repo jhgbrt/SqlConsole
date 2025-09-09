@@ -16,6 +16,11 @@ struct ScriptSplittingState
     private StringBuilder _buffer = new();
     internal string State => MoveNextImpl.Method.Name;
 
+    public ScriptSplittingState()
+    {
+        Quote = null;
+    }
+
     private ScriptSplittingState Append(char c) { _script.Append(_buffer).Append(c); _buffer.Clear(); return this; }
     private ScriptSplittingState Buffer(char c)  { _buffer = _buffer.Append(c); return this; }
     private ScriptSplittingState ClearBuffer() { _buffer.Clear(); return this; }
