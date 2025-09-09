@@ -98,16 +98,11 @@ static partial class CommandFactory
         }
         static IQueryHandler InteractiveQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
         {
-            var formatter = new ConsoleTableFormatter(GetWindowWidth(), " | ");
+            var formatter = new SpectreConsoleTableFormatter();
             var connectionString = builder.ConnectionString;
             var writer = console.Out;
             static DataTable @do(CommandBuilder cb) => cb.AsDataTable();
             return new QueryHandler<DataTable>(provider, connectionString, writer, @do, formatter);
-            static int GetWindowWidth()
-            {
-                try { return Console.WindowWidth; } catch { return 120; }
-            }
-
         }
     }
 
