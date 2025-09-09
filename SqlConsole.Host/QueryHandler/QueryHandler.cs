@@ -1,4 +1,5 @@
 using System.CommandLine.IO;
+using System.Diagnostics;
 
 using Net.Code.ADONet;
 
@@ -28,19 +29,28 @@ class QueryHandler<TQueryResult> : IQueryHandler
         _ => "disconnected"
     };
 
+    public TimeSpan LastExecutionTime { get; private set; } = TimeSpan.Zero;
 
     public void Execute(string query)
     {
+        var totalStopwatch = Stopwatch.StartNew();
         _db.Connect();
+        
         foreach (var script in query.SplitOnGo())
         {
+            var scriptStopwatch = Stopwatch.StartNew();
             var cb = _db.Sql(script);
             var result = _do(cb);
+            scriptStopwatch.Stop();
+            
             foreach (var s in _formatter.Format(result))
             {
                 _writer.WriteLine(s);
             }
         }
+        
+        totalStopwatch.Stop();
+        LastExecutionTime = totalStopwatch.Elapsed;
     }
     public void Connect()
     {
