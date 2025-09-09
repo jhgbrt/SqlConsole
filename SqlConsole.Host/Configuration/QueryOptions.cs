@@ -16,6 +16,8 @@ static partial class CommandFactory
         public FileInfo? Input { get; set; }
         [Description("A file to which the results should be written. Standard query results are written in CSV format.")]
         public FileInfo? Output { get; set; }
+        [Description("Disable colored output")]
+        public bool NoColor { get; set; }
 
         public string GetQuery() => (Query != null && File.Exists(Query) ? File.ReadAllText(Query) : Query) ?? string.Empty;
     }

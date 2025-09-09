@@ -6,18 +6,16 @@ namespace SqlConsole.Host;
 
 internal class SingleQuery : ICommand
 {
-    public void Execute(IQueryHandler queryHandler, QueryOptions option)
+    public void Execute(IQueryHandler queryHandler, QueryOptions options, IConsoleRenderer renderer)
     {
-        var query = option.GetQuery();
+        var query = options.GetQuery();
         try
         {
             queryHandler.Execute(query);
         }
         catch (DbException e)
         {
-            ForegroundColor = ConsoleColor.Red;
-            Error.WriteLine(e.Message);
-            ResetColor();
+            renderer.WriteError(e.Message);
         }
     }
 

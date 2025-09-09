@@ -12,11 +12,11 @@ internal class Repl : ICommand
     public Repl() : this(new ReplConsole()) { }
     public Repl(IReplConsole console) => _console = console;
 
-    public void Execute(IQueryHandler queryHandler, QueryOptions options)
+    public void Execute(IQueryHandler queryHandler, QueryOptions options, IConsoleRenderer renderer)
     {
         queryHandler.Connect();
 
-        _console.WriteLine(queryHandler.ConnectionStatus);
+        renderer.WriteConnectionStatus(queryHandler.ConnectionStatus);
 
         foreach (var command in ReadCommands())
         {
@@ -27,11 +27,11 @@ internal class Repl : ICommand
             {
                 case Connect:
                     queryHandler.Connect();
-                    _console.WriteLine(queryHandler.ConnectionStatus);
+                    renderer.WriteConnectionStatus(queryHandler.ConnectionStatus);
                     break;
                 case Disconnect:
                     queryHandler.Disconnect();
-                    _console.WriteLine(queryHandler.ConnectionStatus);
+                    renderer.WriteConnectionStatus(queryHandler.ConnectionStatus);
                     break;
                 case Clear:
                     _console.Clear();
@@ -53,9 +53,7 @@ internal class Repl : ICommand
                         catch (DbException e)
                         {
 
-                            _console.ForegroundColor = ConsoleColor.Red;
-                            _console.Error.WriteLine(e.Message);
-                            _console.ResetColor();
+                            renderer.WriteError(e.Message);
                         }
                     }
                     break;

@@ -4,5 +4,5 @@ namespace SqlConsole.Host;
 
 internal interface ICommand
 {
-    public void Execute(IQueryHandler queryHandler, QueryOptions options);
+    public void Execute(IQueryHandler queryHandler, QueryOptions options, IConsoleRenderer renderer);
 }

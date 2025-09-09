@@ -22,7 +22,7 @@ namespace SqlConsole.UnitTests.TopCommands
             var queryHandler = Substitute.For<IQueryHandler>();
             var repl = CreateRepl(input);
 
-            repl.Execute(queryHandler, new QueryOptions());
+            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
 
             queryHandler.DidNotReceive().Execute(Arg.Any<string>());
         }
@@ -34,7 +34,7 @@ namespace SqlConsole.UnitTests.TopCommands
             var queryHandler = Substitute.For<IQueryHandler>();
             var repl = CreateRepl(input);
 
-            repl.Execute(queryHandler, new QueryOptions());
+            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
 
             queryHandler.Received().Connect();
         }
@@ -46,7 +46,7 @@ namespace SqlConsole.UnitTests.TopCommands
             var queryHandler = Substitute.For<IQueryHandler>();
             var repl = CreateRepl(input);
 
-            repl.Execute(queryHandler, new QueryOptions());
+            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
 
             queryHandler.Received().Disconnect();
         }
@@ -63,7 +63,7 @@ namespace SqlConsole.UnitTests.TopCommands
             var queryHandler = Substitute.For<IQueryHandler>();
             var repl = CreateRepl(input);
 
-            repl.Execute(queryHandler, new QueryOptions());
+            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
 
             VerifyReceived(queryHandler, expected);
         }
@@ -75,7 +75,7 @@ namespace SqlConsole.UnitTests.TopCommands
             var queryHandler = Substitute.For<IQueryHandler>();
             var repl = CreateRepl(input);
 
-            repl.Execute(queryHandler, new QueryOptions());
+            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
 
             VerifyReceived(queryHandler, expected);
         }
@@ -86,7 +86,7 @@ namespace SqlConsole.UnitTests.TopCommands
             var queryHandler = Substitute.For<IQueryHandler>();
             var repl = CreateRepl(input);
 
-            repl.Execute(queryHandler, new QueryOptions());
+            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
 
             VerifyReceived(queryHandler, expected);
         }
@@ -97,7 +97,7 @@ namespace SqlConsole.UnitTests.TopCommands
             var queryHandler = Substitute.For<IQueryHandler>();
             var repl = CreateRepl(input);
 
-            repl.Execute(queryHandler, new QueryOptions());
+            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
 
             VerifyReceived(queryHandler, expected);
         }
@@ -109,7 +109,7 @@ namespace SqlConsole.UnitTests.TopCommands
             var queryHandler = Substitute.For<IQueryHandler>();
             var repl = CreateRepl(input);
 
-            repl.Execute(queryHandler, new QueryOptions());
+            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
 
             VerifyReceived(queryHandler, expected);
         }
@@ -121,7 +121,7 @@ namespace SqlConsole.UnitTests.TopCommands
             var queryHandler = Substitute.For<IQueryHandler>();
             var repl = CreateRepl(input);
 
-            repl.Execute(queryHandler, new QueryOptions());
+            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
 
             VerifyReceived(queryHandler, expected);
         }
@@ -133,7 +133,7 @@ namespace SqlConsole.UnitTests.TopCommands
             var queryHandler = Substitute.For<IQueryHandler>();
             var repl = CreateRepl(input);
 
-            repl.Execute(queryHandler, new QueryOptions());
+            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
 
             VerifyReceived(queryHandler, expected);
         }
