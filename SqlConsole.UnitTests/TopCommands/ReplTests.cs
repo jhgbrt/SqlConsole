@@ -138,6 +138,36 @@ namespace SqlConsole.UnitTests.TopCommands
             VerifyReceived(queryHandler, expected);
         }
 
+        [Theory]
+        [InlineData("SELECT 1;\nexit\n", "SELECT 1;\r\n")]
+        public void QueryExecution_ShowsTimingInformation(string input, string expected)
+        {
+            var queryHandler = Substitute.For<IQueryHandler>();
+            queryHandler.LastExecutionTime.Returns(TimeSpan.FromMilliseconds(150));
+            var console = Substitute.For<IReplConsole>();
+            console.ReadKey().ReturnsSequence(input);
+            var repl = new Repl(console);
+
+            repl.Execute(queryHandler, new QueryOptions());
+
+            VerifyReceived(queryHandler, expected);
+            console.Received().WriteLine("Time: 150ms");
+        }
+
+        [Theory]
+        [InlineData("SEL\t;\nexit\n", "SELECT;\r\n")]
+        [InlineData("CR\t;\nexit\n", "CREATE;\r\n")]
+        [InlineData("UPD\t set col = 1;\nexit\n", "UPDATE set col = 1;\r\n")]
+        public void SqlKeywordCompletion_CompletesKeywords(string input, string expected)
+        {
+            var queryHandler = Substitute.For<IQueryHandler>();
+            var repl = CreateRepl(input);
+
+            repl.Execute(queryHandler, new QueryOptions());
+
+            VerifyReceived(queryHandler, expected);
+        }
+
         private static Repl CreateRepl(string input)
         {
             var console = Substitute.For<IReplConsole>();

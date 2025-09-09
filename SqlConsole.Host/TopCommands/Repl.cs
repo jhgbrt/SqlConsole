@@ -10,7 +10,11 @@ internal class Repl : ICommand
     private readonly IReplConsole _console;
 
     public Repl() : this(new ReplConsole()) { }
-    public Repl(IReplConsole console) => _console = console;
+    public Repl(IReplConsole console) 
+    { 
+        _console = console;
+        LoadHistory();
+    }
 
     public void Execute(IQueryHandler queryHandler, QueryOptions options)
     {
@@ -21,7 +25,10 @@ internal class Repl : ICommand
         foreach (var command in ReadCommands())
         {
             if (command.IsAbort)
+            {
+                SaveHistory();
                 break;
+            }
 
             switch (command)
             {
@@ -40,6 +47,19 @@ internal class Repl : ICommand
                     try
                     {
                         queryHandler.Execute(q.Sql);
+                        
+                        // Display timing information if execution was successful
+                        if (queryHandler.LastExecutionTime > TimeSpan.Zero)
+                        {
+                            var timeMs = queryHandler.LastExecutionTime.TotalMilliseconds;
+                            var timeDisplay = timeMs < 1000 
+                                ? $"{timeMs:F0}ms" 
+                                : $"{queryHandler.LastExecutionTime.TotalSeconds:F2}s";
+                            
+                            _console.ForegroundColor = ConsoleColor.Gray;
+                            _console.WriteLine($"Time: {timeDisplay}");
+                            _console.ResetColor();
+                        }
                     }
                     catch (DbException)
                     {
@@ -49,6 +69,19 @@ internal class Repl : ICommand
                             queryHandler.Disconnect();
                             queryHandler.Connect();
                             queryHandler.Execute(q.Sql);
+                            
+                            // Display timing information for retry as well
+                            if (queryHandler.LastExecutionTime > TimeSpan.Zero)
+                            {
+                                var timeMs = queryHandler.LastExecutionTime.TotalMilliseconds;
+                                var timeDisplay = timeMs < 1000 
+                                    ? $"{timeMs:F0}ms" 
+                                    : $"{queryHandler.LastExecutionTime.TotalSeconds:F2}s";
+                                
+                                _console.ForegroundColor = ConsoleColor.Gray;
+                                _console.WriteLine($"Time: {timeDisplay}");
+                                _console.ResetColor();
+                            }
                         }
                         catch (DbException e)
                         {
@@ -96,6 +129,39 @@ internal class Repl : ICommand
         ["cls"] = new Clear(),
         ["clear"] = new Clear(),
     };
+    
+    private void LoadHistory()
+    {
+        try
+        {
+            if (File.Exists(_historyFilePath))
+            {
+                var lines = File.ReadAllLines(_historyFilePath)
+                    .Where(line => !string.IsNullOrWhiteSpace(line))
+                    .Take(100) // Limit to last 100 entries
+                    .ToList();
+                _history.AddRange(lines);
+            }
+        }
+        catch
+        {
+            // Silently ignore history loading errors
+        }
+    }
+    
+    private void SaveHistory()
+    {
+        try
+        {
+            var linesToSave = _history.Take(100).ToArray();
+            File.WriteAllLines(_historyFilePath, linesToSave);
+        }
+        catch
+        {
+            // Silently ignore history saving errors
+        }
+    }
+    
     IEnumerable<BaseCommand> ReadCommands()
     {
         while (true)
@@ -139,12 +205,29 @@ internal class Repl : ICommand
         {
             cb.AppendLine(ReadLine());
             if (cb.IsComplete) break;
-            _console.Write("| ");
+            _console.ForegroundColor = ConsoleColor.DarkGray;
+            _console.Write("-> ");
+            _console.ResetColor();
         }
         return cb.Command!;
     }
 
     readonly List<string> _history = new();
+    private readonly string _historyFilePath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        ".sqlconsole_history");
+    
+    // Common SQL keywords for auto-completion
+    static readonly string[] SqlKeywords = new[]
+    {
+        "SELECT", "INSERT", "UPDATE", "DELETE", "CREATE", "ALTER", "DROP", "TRUNCATE",
+        "FROM", "WHERE", "JOIN", "INNER JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN",
+        "GROUP BY", "ORDER BY", "HAVING", "DISTINCT", "AS", "ON", "IN", "NOT IN",
+        "EXISTS", "NOT EXISTS", "LIKE", "AND", "OR", "NOT", "BETWEEN", "IS NULL", "IS NOT NULL",
+        "COUNT", "SUM", "AVG", "MIN", "MAX", "CASE", "WHEN", "THEN", "ELSE", "END",
+        "TABLE", "INDEX", "VIEW", "DATABASE", "SCHEMA", "PRIMARY KEY", "FOREIGN KEY",
+        "CONSTRAINT", "DEFAULT", "AUTO_INCREMENT", "UNIQUE", "CHECK"
+    };
 
     string ReadLine()
     {
@@ -199,7 +282,7 @@ internal class Repl : ICommand
                     { IsDownArrow: true } when y == 0 && _history.Any()
                         => (sb.Clear().Append(_history[0]), string.Empty, sb.Length, 1),
                     { IsTab: true }
-                        => FindInHistory(sb, prefix),
+                        => FindCompletion(sb, prefix),
                     { IsHome: true }
                         => (sb, prefix, 0, y),
                     { IsEnd: true }
@@ -228,16 +311,44 @@ internal class Repl : ICommand
                 sb = sb.Replace(sb[x], c, x, 1);
             return (sb, string.Empty, x + 1, y);
         }
-        (StringBuilder, string, int, int) FindInHistory(StringBuilder sb, string prefix)
+        (StringBuilder, string, int, int) FindCompletion(StringBuilder sb, string prefix)
         {
             if (string.IsNullOrEmpty(prefix))
                 prefix = sb.ToString();
+
+            // First try history completion (maintain existing behavior)
             for (int i = y; i < _history.Count; i++)
-                if (_history[i].StartsWith(prefix))
+                if (_history[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                     return (sb.Clear().Append(_history[i]), prefix, sb.Length, i + 1);
             for (int i = 0; i < y; i++)
-                if (_history[i].StartsWith(prefix))
+                if (_history[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                     return (sb.Clear().Append(_history[i]), prefix, sb.Length, i + 1);
+
+            // Only try SQL keyword completion if no history match found
+            // Get the last word being typed for keyword completion
+            var currentLine = sb.ToString();
+            var lastSpaceIndex = Math.Max(currentLine.LastIndexOf(' '), currentLine.LastIndexOf('\t'));
+            var currentWord = lastSpaceIndex >= 0 ? currentLine.Substring(lastSpaceIndex + 1) : currentLine;
+            
+            // Try SQL keywords if we're typing a partial word and no history match
+            if (!string.IsNullOrEmpty(currentWord) && 
+                currentWord.All(c => char.IsLetter(c) || c == '_') && 
+                currentWord.Length >= 2) // Only suggest keywords for 2+ characters
+            {
+                var matchingKeyword = SqlKeywords
+                    .FirstOrDefault(keyword => keyword.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase));
+                
+                if (matchingKeyword != null)
+                {
+                    // Replace the current word with the keyword
+                    var newLine = lastSpaceIndex >= 0 
+                        ? currentLine.Substring(0, lastSpaceIndex + 1) + matchingKeyword
+                        : matchingKeyword;
+                    
+                    return (sb.Clear().Append(newLine), prefix, sb.Length, y);
+                }
+            }
+            
             return (sb, prefix, sb.Length, y);
         }
 
