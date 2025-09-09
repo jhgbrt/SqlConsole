@@ -1,4 +1,5 @@
 ﻿using Net.Code.ADONet;
+using SqlConsole.Host.Infrastructure;
 
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -26,14 +27,19 @@ static partial class CommandFactory
                                          .WithOptions(typeof(QueryOptions).GetOptions()))
             );
 
+        var completion = CompletionCommand.Create();
+
         return new RootCommand
         {
             Description =
                 "A generic SQL utility tool for running SQL queries, either directly " +
-                "from the commandline or in an interactive console. " +
-                $"Supports the following providers: {string.Join(", ", Provider.All.Select(p => p.Name))}. " +
-                "Use the help function of each command for info on how to connect."
-        }.WithChildCommands(console, query);
+                "from the commandline or in an interactive console.\n\n" +
+                HelpFormatter.FormatProviderList() + ".\n\n" +
+                "Use the help function of each command for info on how to connect.\n\n" +
+                HelpFormatter.Colorize("Quick start:", ConsoleColor.Magenta) + "\n" +
+                "sqlc query sqlite --data-source \":memory:\" \"SELECT 'Hello World'\"\n" +
+                "sqlc completion --shell bash  # Generate completion script"
+        }.WithChildCommands(console, query, completion);
     }
     static IEnumerable<Command> CreateProviderCommands<T>() where T : ICommand, new()
         => (
@@ -48,8 +54,12 @@ static partial class CommandFactory
         where TCommand : ICommand
     {
         var options = provider.ConnectionConfigurationProperties().ToOptions();
+        var baseDescription = $"Connect to {provider.Name} database";
+        var enhancedDescription = HelpFormatter.CreateProviderDescription(provider.Name, baseDescription);
+        
         return new Command(provider.Name)
         {
+            Description = enhancedDescription,
             Handler = CommandHandler.Create((TConnectionStringBuilder builder, QueryOptions options, IConsole console) =>
             {
                 using var queryHandler = CreateQueryHandler(provider, builder, options, console);
