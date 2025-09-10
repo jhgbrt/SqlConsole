@@ -82,6 +82,7 @@ namespace SqlConsole.UnitTests.IntegrationTests
             Assert.Equal(csvoutput, output, ignoreLineEndingDifferences: true);
         }
 
+
     }
 
 
