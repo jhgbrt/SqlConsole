@@ -18,7 +18,23 @@ static partial class CommandFactory
         public FileInfo? Output { get; set; }
         [Description("Disable colored output")]
         public bool NoColor { get; set; }
+        [Description("Output results in CSV format")]
+        public bool Csv { get; set; }
 
         public string GetQuery() => (Query != null && File.Exists(Query) ? File.ReadAllText(Query) : Query) ?? string.Empty;
+        
+        /// <summary>
+        /// Determine the output mode based on the options
+        /// </summary>
+        public Rendering.OutputMode GetOutputMode()
+        {
+            // CSV mode if explicitly requested or output file is specified
+            if (Csv || Output != null)
+            {
+                return Rendering.OutputMode.Csv;
+            }
+            
+            return Rendering.OutputMode.Interactive;
+        }
     }
 }
