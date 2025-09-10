@@ -9,6 +9,27 @@ internal class Repl : ICommand
 
     private readonly IReplConsole _console;
 
+    // SQL Keywords and Functions for Tab completion
+    private static readonly string[] SqlKeywords = new[]
+    {
+        // Common SQL Keywords
+        "SELECT", "FROM", "WHERE", "INSERT", "UPDATE", "DELETE", "CREATE", "ALTER", "DROP",
+        "TABLE", "INDEX", "VIEW", "DATABASE", "SCHEMA", "PROCEDURE", "FUNCTION", "TRIGGER",
+        "JOIN", "INNER", "LEFT", "RIGHT", "FULL", "OUTER", "CROSS", "UNION", "ALL", "DISTINCT",
+        "GROUP", "BY", "ORDER", "HAVING", "LIMIT", "OFFSET", "TOP", "AS", "AND", "OR", "NOT",
+        "NULL", "IS", "IN", "LIKE", "BETWEEN", "EXISTS", "CASE", "WHEN", "THEN", "ELSE", "END",
+        "IF", "WHILE", "BEGIN", "COMMIT", "ROLLBACK", "TRANSACTION", "DECLARE", "SET", "EXEC",
+        
+        // Data Types
+        "INT", "INTEGER", "VARCHAR", "CHAR", "TEXT", "DATE", "DATETIME", "TIME", "TIMESTAMP",
+        "DECIMAL", "NUMERIC", "FLOAT", "REAL", "DOUBLE", "BOOLEAN", "BIT", "BINARY", "VARBINARY",
+        
+        // Common Functions
+        "COUNT", "SUM", "AVG", "MIN", "MAX", "LEN", "LENGTH", "UPPER", "LOWER", "SUBSTRING",
+        "TRIM", "LTRIM", "RTRIM", "REPLACE", "CONCAT", "COALESCE", "ISNULL", "NULLIF",
+        "CAST", "CONVERT", "GETDATE", "NOW", "DATEADD", "DATEDIFF", "YEAR", "MONTH", "DAY"
+    };
+
     public Repl() : this(new ReplConsole()) { }
     public Repl(IReplConsole console) => _console = console;
 
@@ -197,7 +218,7 @@ internal class Repl : ICommand
                     { IsDownArrow: true } when y == 0 && _history.Any()
                         => (sb.Clear().Append(_history[0]), string.Empty, sb.Length, 1),
                     { IsTab: true }
-                        => FindInHistory(sb, prefix),
+                        => FindCompletion(sb, prefix),
                     { IsHome: true }
                         => (sb, prefix, 0, y),
                     { IsEnd: true }
@@ -226,16 +247,35 @@ internal class Repl : ICommand
                 sb = sb.Replace(sb[x], c, x, 1);
             return (sb, string.Empty, x + 1, y);
         }
-        (StringBuilder, string, int, int) FindInHistory(StringBuilder sb, string prefix)
+        (StringBuilder, string, int, int) FindCompletion(StringBuilder sb, string prefix)
         {
             if (string.IsNullOrEmpty(prefix))
                 prefix = sb.ToString();
+            
+            // First, search through history (exactly like original code)
             for (int i = y; i < _history.Count; i++)
-                if (_history[i].StartsWith(prefix))
+                if (_history[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                     return (sb.Clear().Append(_history[i]), prefix, sb.Length, i + 1);
             for (int i = 0; i < y; i++)
-                if (_history[i].StartsWith(prefix))
+                if (_history[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                     return (sb.Clear().Append(_history[i]), prefix, sb.Length, i + 1);
+                    
+            // After exhausting history, search through keywords
+            var matchingKeywords = SqlKeywords
+                .Where(keyword => keyword.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+                
+            if (matchingKeywords.Length > 0)
+            {
+                int keywordIndex = y - _history.Count;
+                if (keywordIndex >= 0 && keywordIndex < matchingKeywords.Length)
+                {
+                    var selectedKeyword = matchingKeywords[keywordIndex];
+                    // For keywords, replace entire content just like history does
+                    return (sb.Clear().Append(selectedKeyword), prefix, sb.Length, _history.Count + keywordIndex + 1);
+                }
+            }
+            
             return (sb, prefix, sb.Length, y);
         }
 
