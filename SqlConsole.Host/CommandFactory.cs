@@ -64,10 +64,8 @@ static partial class CommandFactory
     {
         var renderer = ConsoleRendererFactory.Create(options);
         
-        // Determine if timing should be shown:
-        // - REPL: always show timing
-        // - Single query: only if --timing flag is set
-        var showTiming = isRepl || options.Timing;
+        // Always show timing for all modes
+        var showTiming = true;
         
         return options switch
         {

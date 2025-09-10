@@ -18,8 +18,6 @@ static partial class CommandFactory
         public FileInfo? Output { get; set; }
         [Description("Disable colored output")]
         public bool NoColor { get; set; }
-        [Description("Show timing and row statistics for query execution")]
-        public bool Timing { get; set; }
 
         public string GetQuery() => (Query != null && File.Exists(Query) ? File.ReadAllText(Query) : Query) ?? string.Empty;
     }

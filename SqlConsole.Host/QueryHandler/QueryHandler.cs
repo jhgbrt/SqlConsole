@@ -13,7 +13,6 @@ class QueryHandler<TQueryResult> : IQueryHandler
     private readonly IStandardStreamWriter _writer;
     private readonly Provider _provider;
     private readonly IConsoleRenderer _renderer;
-    private readonly bool _showTiming;
 
     public QueryHandler(Provider provider, string connectionString, IStandardStreamWriter writer, Func<CommandBuilder, TQueryResult> @do, ITextFormatter<TQueryResult> formatter, IConsoleRenderer renderer, bool showTiming = true)
     {
@@ -23,7 +22,6 @@ class QueryHandler<TQueryResult> : IQueryHandler
         _formatter = formatter;
         _renderer = renderer;
         _db = new Db(connectionString, provider.DbConfig, provider.Factory);
-        _showTiming = showTiming;
     }
 
     public string ConnectionStatus => $"[{_provider.Name} - {DbConnectionStatus}])";
@@ -60,42 +58,8 @@ class QueryHandler<TQueryResult> : IQueryHandler
         
         stopwatch.Stop();
         
-        if (_showTiming)
-        {
-            _renderer.WriteTimingAndRows(stopwatch.Elapsed, totalRowCount);
-        }
-    }
-
-    public void Execute(string query, bool showTiming)
-    {
-        _db.Connect();
-        var stopwatch = Stopwatch.StartNew();
-        int? totalRowCount = null;
-        
-        foreach (var script in query.SplitOnGo())
-        {
-            var cb = _db.Sql(script);
-            var result = _do(cb);
-            
-            // Extract row count based on result type
-            var rowCount = ExtractRowCount(result);
-            if (rowCount.HasValue)
-            {
-                totalRowCount = (totalRowCount ?? 0) + rowCount.Value;
-            }
-            
-            foreach (var s in _formatter.Format(result))
-            {
-                _writer.WriteLine(s);
-            }
-        }
-        
-        stopwatch.Stop();
-        
-        if (showTiming)
-        {
-            _renderer.WriteTimingAndRows(stopwatch.Elapsed, totalRowCount);
-        }
+        // Always show timing and row statistics
+        _renderer.WriteTimingAndRows(stopwatch.Elapsed, totalRowCount);
     }
 
     private int? ExtractRowCount(TQueryResult result)
