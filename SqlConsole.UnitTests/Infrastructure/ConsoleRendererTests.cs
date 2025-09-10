@@ -85,6 +85,86 @@ namespace SqlConsole.UnitTests.Infrastructure
                 Console.SetOut(originalOut);
             }
         }
+
+        [Theory]
+        [InlineData(1, "1 row")]
+        [InlineData(2, "2 rows")]
+        [InlineData(10, "10 rows")]
+        public void NoColorConsoleRenderer_WriteTimingAndRows_WithRowCount_ShowsRowsAndTiming(int rowCount, string expectedRowText)
+        {
+            // Arrange
+            var originalOut = Console.Out;
+            var stringWriter = new StringWriter();
+            Console.SetOut(stringWriter);
+            var renderer = new NoColorConsoleRenderer();
+
+            try
+            {
+                // Act
+                renderer.WriteTimingAndRows(TimeSpan.FromMilliseconds(100), rowCount);
+
+                // Assert
+                var output = stringWriter.ToString();
+                Assert.Contains($"({expectedRowText} | 100ms - medium)", output);
+            }
+            finally
+            {
+                // Restore
+                Console.SetOut(originalOut);
+            }
+        }
+
+        [Fact]
+        public void NoColorConsoleRenderer_WriteTimingAndRows_WithZeroRows_ShowsTimingOnly()
+        {
+            // Arrange
+            var originalOut = Console.Out;
+            var stringWriter = new StringWriter();
+            Console.SetOut(stringWriter);
+            var renderer = new NoColorConsoleRenderer();
+
+            try
+            {
+                // Act
+                renderer.WriteTimingAndRows(TimeSpan.FromMilliseconds(50), 0);
+
+                // Assert
+                var output = stringWriter.ToString();
+                Assert.Contains("(50ms - fast)", output);
+                Assert.DoesNotContain("rows", output);
+            }
+            finally
+            {
+                // Restore
+                Console.SetOut(originalOut);
+            }
+        }
+
+        [Fact]
+        public void NoColorConsoleRenderer_WriteTimingAndRows_WithNullRows_ShowsTimingOnly()
+        {
+            // Arrange
+            var originalOut = Console.Out;
+            var stringWriter = new StringWriter();
+            Console.SetOut(stringWriter);
+            var renderer = new NoColorConsoleRenderer();
+
+            try
+            {
+                // Act
+                renderer.WriteTimingAndRows(TimeSpan.FromMilliseconds(150), null);
+
+                // Assert
+                var output = stringWriter.ToString();
+                Assert.Contains("(150ms - medium)", output);
+                Assert.DoesNotContain("rows", output);
+            }
+            finally
+            {
+                // Restore
+                Console.SetOut(originalOut);
+            }
+        }
     }
     
     public class ConsoleRendererFactoryTests

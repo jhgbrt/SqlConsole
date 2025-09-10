@@ -9,7 +9,7 @@ static partial class CommandFactory
 {
     public static Command CreateCommand()
     {
-        var console = CreateProviderCommands<Repl>()
+        var console = CreateProviderCommands<Repl>(isRepl: true)
             .Aggregate(
                 new Command("console",
                 "Run an interactive SQL console. Run the help command for a specific " +
@@ -17,7 +17,7 @@ static partial class CommandFactory
                 (parent, child) => parent.WithChildCommand(child)
                 );
 
-        var query = CreateProviderCommands<SingleQuery>()
+        var query = CreateProviderCommands<SingleQuery>(isRepl: false)
             .Aggregate(
                 new Command("query",
                 "Run a SQL query inline or from a file. Run the help command for a specific " +
@@ -35,15 +35,15 @@ static partial class CommandFactory
                 "Use the help function of each command for info on how to connect."
         }.WithChildCommands(console, query);
     }
-    static IEnumerable<Command> CreateProviderCommands<T>() where T : ICommand, new()
+    static IEnumerable<Command> CreateProviderCommands<T>(bool isRepl) where T : ICommand, new()
         => (
             from dynamic p in Provider.All
-            select CreateCommand(p, new T())
+            select CreateCommand(p, new T(), isRepl)
             )
             .OfType<Command>();
 
     static Command CreateCommand<TConnectionStringBuilder, TCommand>(
-        Provider<TConnectionStringBuilder> provider, TCommand commandHandler)
+        Provider<TConnectionStringBuilder> provider, TCommand commandHandler, bool isRepl)
         where TConnectionStringBuilder : DbConnectionStringBuilder
         where TCommand : ICommand
     {
@@ -53,58 +53,64 @@ static partial class CommandFactory
             Handler = CommandHandler.Create((TConnectionStringBuilder builder, QueryOptions options, IConsole console) =>
             {
                 var renderer = ConsoleRendererFactory.Create(options);
-                using var queryHandler = CreateQueryHandler(provider, builder, options, console);
+                using var queryHandler = CreateQueryHandler(provider, builder, options, console, isRepl);
                 commandHandler.Execute(queryHandler, options, renderer);
             })
         }.WithOptions(options);
     }
 
     // builder, options and console are injected by System.CommandLine
-    private static IQueryHandler CreateQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
+    private static IQueryHandler CreateQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console, bool isRepl = false)
     {
         var renderer = ConsoleRendererFactory.Create(options);
+        
+        // Determine if timing should be shown:
+        // - REPL: always show timing
+        // - Single query: only if --timing flag is set
+        var showTiming = isRepl || options.Timing;
+        
         return options switch
         {
-            { AsScalar: true } => ScalarQueryHandler(provider, builder, options, console, renderer),
-            { AsNonquery: true } => NonQueryQueryHandler(provider, builder, options, console, renderer),
-            _ when options.Output != null => OutputToFileQueryHandler(provider, builder, options, console, renderer),
-            _ => InteractiveQueryHandler(provider, builder, options, console, renderer)
+            { AsScalar: true } => ScalarQueryHandler(provider, builder, options, console, renderer, showTiming),
+            { AsNonquery: true } => NonQueryQueryHandler(provider, builder, options, console, renderer, showTiming),
+            _ when options.Output != null => OutputToFileQueryHandler(provider, builder, options, console, renderer, showTiming),
+            _ => InteractiveQueryHandler(provider, builder, options, console, renderer, showTiming)
         };
 
 
-        static IQueryHandler ScalarQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console, IConsoleRenderer renderer)
+        static IQueryHandler ScalarQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console, IConsoleRenderer renderer, bool showTiming)
         {
             var formatter = new ScalarFormatter();
             var connectionString = builder.ConnectionString;
             var writer = console.Out;
             static object @do(CommandBuilder cb) => cb.AsScalar();
-            return new QueryHandler<object>(provider, connectionString, writer, @do, formatter, renderer);
+            return new QueryHandler<object>(provider, connectionString, writer, @do, formatter, renderer, showTiming);
         }
 
-        static IQueryHandler NonQueryQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console, IConsoleRenderer renderer)
+        static IQueryHandler NonQueryQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console, IConsoleRenderer renderer, bool showTiming)
         {
             var formatter = new NonQueryFormatter();
             var connectionString = builder.ConnectionString;
             var writer = console.Out;
             static int @do(CommandBuilder cb) => cb.AsNonQuery();
-            return new QueryHandler<int>(provider, connectionString, writer, @do, formatter, renderer);
+            return new QueryHandler<int>(provider, connectionString, writer, @do, formatter, renderer, showTiming);
         }
 
-        static IQueryHandler OutputToFileQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console, IConsoleRenderer renderer)
+        static IQueryHandler OutputToFileQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console, IConsoleRenderer renderer, bool showTiming)
         {
             var formatter = new CsvFormatter();
             var connectionString = builder.ConnectionString;
             var writer = new MyTextWriter(new StreamWriter(options.Output!.OpenWrite(), Encoding.UTF8));
             static DataTable @do(CommandBuilder cb) => cb.AsDataTable();
-            return new QueryHandler<DataTable>(provider, connectionString, writer, @do, formatter, renderer);
+            return new QueryHandler<DataTable>(provider, connectionString, writer, @do, formatter, renderer, showTiming);
         }
-        static IQueryHandler InteractiveQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console, IConsoleRenderer renderer)
+        static IQueryHandler InteractiveQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console, IConsoleRenderer renderer, bool showTiming)
         {
             var formatter = new ConsoleTableFormatter(GetWindowWidth(), " | ");
             var connectionString = builder.ConnectionString;
             var writer = console.Out;
             static DataTable @do(CommandBuilder cb) => cb.AsDataTable();
-            return new QueryHandler<DataTable>(provider, connectionString, writer, @do, formatter, renderer);
+            return new QueryHandler<DataTable>(provider, connectionString, writer, @do, formatter, renderer, showTiming);
             static int GetWindowWidth()
             {
                 try { return Console.WindowWidth; } catch { return 120; }
