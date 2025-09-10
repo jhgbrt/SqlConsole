@@ -1,7 +1,11 @@
 ﻿using Net.Code.ADONet;
+using SqlConsole.Host.QueryHandler;
+using SqlConsole.Host.Rendering;
+using SqlConsole.Host.ResultModel;
 
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.CommandLine.IO;
 
 namespace SqlConsole.Host;
 
@@ -62,55 +66,45 @@ static partial class CommandFactory
     // builder, options and console are injected by System.CommandLine
     private static IQueryHandler CreateQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
     {
-        var renderer = ConsoleRendererFactory.Create(options);
+        var consoleRenderer = ConsoleRendererFactory.Create(options);
+        var outputMode = options.GetOutputMode();
+        
+        IStandardStreamWriter writer;
+        IDisposable? disposableWriter = null;
+        
+        if (options.Output != null)
+        {
+            var fileWriter = new MyTextWriter(new StreamWriter(options.Output.OpenWrite(), Encoding.UTF8));
+            writer = fileWriter;
+            disposableWriter = fileWriter;
+        }
+        else
+        {
+            writer = console.Out;
+        }
+        
+        var resultRenderer = ResultRendererFactory.Create(outputMode, writer, consoleRenderer);
+        var connectionString = builder.ConnectionString;
+        
         return options switch
         {
-            { AsScalar: true } => ScalarQueryHandler(provider, builder, options, console, renderer),
-            { AsNonquery: true } => NonQueryQueryHandler(provider, builder, options, console, renderer),
-            _ when options.Output != null => OutputToFileQueryHandler(provider, builder, options, console, renderer),
-            _ => InteractiveQueryHandler(provider, builder, options, console, renderer)
+            { AsScalar: true } => CreateSemanticQueryHandler(provider, connectionString, 
+                cb => new ScalarView(cb.AsScalar()), resultRenderer, disposableWriter),
+            { AsNonquery: true } => CreateSemanticQueryHandler(provider, connectionString, 
+                cb => new NonQueryView(cb.AsNonQuery()), resultRenderer, disposableWriter),
+            _ => CreateSemanticQueryHandler(provider, connectionString, 
+                cb => TableView.FromDataTable(cb.AsDataTable()), resultRenderer, disposableWriter)
         };
-
-
-        static IQueryHandler ScalarQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console, IConsoleRenderer renderer)
-        {
-            var formatter = new ScalarFormatter();
-            var connectionString = builder.ConnectionString;
-            var writer = console.Out;
-            static object @do(CommandBuilder cb) => cb.AsScalar();
-            return new QueryHandler<object>(provider, connectionString, writer, @do, formatter, renderer);
-        }
-
-        static IQueryHandler NonQueryQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console, IConsoleRenderer renderer)
-        {
-            var formatter = new NonQueryFormatter();
-            var connectionString = builder.ConnectionString;
-            var writer = console.Out;
-            static int @do(CommandBuilder cb) => cb.AsNonQuery();
-            return new QueryHandler<int>(provider, connectionString, writer, @do, formatter, renderer);
-        }
-
-        static IQueryHandler OutputToFileQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console, IConsoleRenderer renderer)
-        {
-            var formatter = new CsvFormatter();
-            var connectionString = builder.ConnectionString;
-            var writer = new MyTextWriter(new StreamWriter(options.Output!.OpenWrite(), Encoding.UTF8));
-            static DataTable @do(CommandBuilder cb) => cb.AsDataTable();
-            return new QueryHandler<DataTable>(provider, connectionString, writer, @do, formatter, renderer);
-        }
-        static IQueryHandler InteractiveQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console, IConsoleRenderer renderer)
-        {
-            var formatter = new ConsoleTableFormatter(GetWindowWidth(), " | ");
-            var connectionString = builder.ConnectionString;
-            var writer = console.Out;
-            static DataTable @do(CommandBuilder cb) => cb.AsDataTable();
-            return new QueryHandler<DataTable>(provider, connectionString, writer, @do, formatter, renderer);
-            static int GetWindowWidth()
-            {
-                try { return Console.WindowWidth; } catch { return 120; }
-            }
-
-        }
+    }
+    
+    private static IQueryHandler CreateSemanticQueryHandler(
+        Provider provider, 
+        string connectionString, 
+        Func<CommandBuilder, IResultView> execute,
+        IResultRenderer renderer,
+        IDisposable? disposableWriter = null)
+    {
+        return new SemanticQueryHandler(provider, connectionString, execute, renderer, disposableWriter);
     }
 
 }

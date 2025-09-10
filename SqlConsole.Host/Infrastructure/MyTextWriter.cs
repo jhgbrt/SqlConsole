@@ -12,5 +12,6 @@ static partial class CommandFactory
 
         public void Dispose() => _writer.Dispose();
         public void Write(string value) => _writer.Write(value);
+        public void WriteLine(string value) => _writer.WriteLine(value);
     }
 }
