@@ -256,7 +256,7 @@ internal class Repl : ICommand
             for (int i = y; i < _history.Count; i++)
                 if (_history[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                     return (sb.Clear().Append(_history[i]), prefix, sb.Length, i + 1);
-            for (int i = 0; i < y; i++)
+            for (int i = 0; i < Math.Min(y, _history.Count); i++)
                 if (_history[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                     return (sb.Clear().Append(_history[i]), prefix, sb.Length, i + 1);
                     

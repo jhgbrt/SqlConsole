@@ -106,7 +106,7 @@ namespace SqlConsole.UnitTests.TopCommands
         }
 
         [Theory]
-        [InlineData("SELECT 1;\nSEL\t\t;\nexit\n", "SELECT 1;\r\n", "SELECT;\r\n")]
+        [InlineData("SELECT 1;\nSEL\t\t\nexit\n", "SELECT 1;\r\n", "SELECT\r\n")]
         public void Tab_HistoryFirstThenKeywords_CyclesCorrectly(string input, params string[] expected)
         {
             var queryHandler = Substitute.For<IQueryHandler>();
