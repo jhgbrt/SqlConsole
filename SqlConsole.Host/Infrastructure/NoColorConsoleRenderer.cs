@@ -26,4 +26,26 @@ internal class NoColorConsoleRenderer : IConsoleRenderer
         
         Console.WriteLine($"({elapsed.TotalMilliseconds:F0}ms - {description})");
     }
+    
+    public void WriteTimingAndRows(TimeSpan elapsed, int? rowCount)
+    {
+        var description = elapsed.TotalMilliseconds switch
+        {
+            < 100 => "fast",
+            < 1000 => "medium", 
+            _ => "slow"
+        };
+        
+        var timingText = $"{elapsed.TotalMilliseconds:F0}ms - {description}";
+        
+        if (rowCount.HasValue && rowCount > 0)
+        {
+            var rowText = rowCount == 1 ? "1 row" : $"{rowCount} rows";
+            Console.WriteLine($"({rowText} | {timingText})");
+        }
+        else
+        {
+            Console.WriteLine($"({timingText})");
+        }
+    }
 }

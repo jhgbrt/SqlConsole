@@ -13,7 +13,7 @@ static partial class CommandFactory
 {
     public static Command CreateCommand()
     {
-        var console = CreateProviderCommands<Repl>()
+        var console = CreateProviderCommands<Repl>(isRepl: true)
             .Aggregate(
                 new Command("console",
                 "Run an interactive SQL console. Run the help command for a specific " +
@@ -21,7 +21,7 @@ static partial class CommandFactory
                 (parent, child) => parent.WithChildCommand(child)
                 );
 
-        var query = CreateProviderCommands<SingleQuery>()
+        var query = CreateProviderCommands<SingleQuery>(isRepl: false)
             .Aggregate(
                 new Command("query",
                 "Run a SQL query inline or from a file. Run the help command for a specific " +
@@ -39,15 +39,15 @@ static partial class CommandFactory
                 "Use the help function of each command for info on how to connect."
         }.WithChildCommands(console, query);
     }
-    static IEnumerable<Command> CreateProviderCommands<T>() where T : ICommand, new()
+    static IEnumerable<Command> CreateProviderCommands<T>(bool isRepl) where T : ICommand, new()
         => (
             from dynamic p in Provider.All
-            select CreateCommand(p, new T())
+            select CreateCommand(p, new T(), isRepl)
             )
             .OfType<Command>();
 
     static Command CreateCommand<TConnectionStringBuilder, TCommand>(
-        Provider<TConnectionStringBuilder> provider, TCommand commandHandler)
+        Provider<TConnectionStringBuilder> provider, TCommand commandHandler, bool isRepl)
         where TConnectionStringBuilder : DbConnectionStringBuilder
         where TCommand : ICommand
     {
@@ -57,14 +57,14 @@ static partial class CommandFactory
             Handler = CommandHandler.Create((TConnectionStringBuilder builder, QueryOptions options, IConsole console) =>
             {
                 var renderer = ConsoleRendererFactory.Create(options);
-                using var queryHandler = CreateQueryHandler(provider, builder, options, console);
+                using var queryHandler = CreateQueryHandler(provider, builder, options, console, isRepl);
                 commandHandler.Execute(queryHandler, options, renderer);
             })
         }.WithOptions(options);
     }
 
     // builder, options and console are injected by System.CommandLine
-    private static IQueryHandler CreateQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console)
+    private static IQueryHandler CreateQueryHandler(Provider provider, DbConnectionStringBuilder builder, QueryOptions options, IConsole console, bool isRepl = false)
     {
         var consoleRenderer = ConsoleRendererFactory.Create(options);
         var outputMode = options.GetOutputMode();

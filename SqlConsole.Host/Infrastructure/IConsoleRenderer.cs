@@ -22,4 +22,11 @@ internal interface IConsoleRenderer
     /// </summary>
     /// <param name="elapsed">The elapsed time</param>
     void WriteTiming(TimeSpan elapsed);
+    
+    /// <summary>
+    /// Write timing and row statistics information with color thresholds
+    /// </summary>
+    /// <param name="elapsed">The elapsed time</param>
+    /// <param name="rowCount">Number of rows affected or returned (null if unknown)</param>
+    void WriteTimingAndRows(TimeSpan elapsed, int? rowCount);
 }
