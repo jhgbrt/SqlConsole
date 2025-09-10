@@ -1,4 +1,5 @@
 using System.CommandLine.IO;
+using System.Diagnostics;
 
 using Net.Code.ADONet;
 
@@ -11,13 +12,15 @@ class QueryHandler<TQueryResult> : IQueryHandler
     private readonly IDb _db;
     private readonly IStandardStreamWriter _writer;
     private readonly Provider _provider;
+    private readonly IConsoleRenderer _renderer;
 
-    public QueryHandler(Provider provider, string connectionString, IStandardStreamWriter writer, Func<CommandBuilder, TQueryResult> @do, ITextFormatter<TQueryResult> formatter)
+    public QueryHandler(Provider provider, string connectionString, IStandardStreamWriter writer, Func<CommandBuilder, TQueryResult> @do, ITextFormatter<TQueryResult> formatter, IConsoleRenderer renderer)
     {
         _provider = provider;
         _writer = writer;
         _do = @do;
         _formatter = formatter;
+        _renderer = renderer;
         _db = new Db(connectionString, provider.DbConfig, provider.Factory);
     }
 
@@ -32,6 +35,7 @@ class QueryHandler<TQueryResult> : IQueryHandler
     public void Execute(string query)
     {
         _db.Connect();
+        var stopwatch = Stopwatch.StartNew();
         foreach (var script in query.SplitOnGo())
         {
             var cb = _db.Sql(script);
@@ -41,6 +45,8 @@ class QueryHandler<TQueryResult> : IQueryHandler
                 _writer.WriteLine(s);
             }
         }
+        stopwatch.Stop();
+        _renderer.WriteTiming(stopwatch.Elapsed);
     }
     public void Connect()
     {
