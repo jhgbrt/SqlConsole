@@ -67,18 +67,6 @@ namespace SqlConsole.UnitTests.TopCommands
 
             VerifyReceived(queryHandler, expected);
         }
-
-        [Theory]
-        [InlineData("SELECT 1;\nS\t\nexit\n", "SELECT 1;\r\n", "SELECT 1;\r\n")]
-        public void Tab_CreatesCompletion(string input, params string[] expected)
-        {
-            var queryHandler = Substitute.For<IQueryHandler>();
-            var repl = CreateRepl(input);
-
-            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
-
-            VerifyReceived(queryHandler, expected);
-        }
         [Theory]
         [InlineData("SELECT 1111;\nSELECT 2\t;\nexit\n", "SELECT 1111;\r\n", "SELECT 2;\r\n")]
         public void Tab_WhenPrefixUnknown_DoesNothing(string input, params string[] expected)
@@ -90,8 +78,71 @@ namespace SqlConsole.UnitTests.TopCommands
 
             VerifyReceived(queryHandler, expected);
         }
+
         [Theory]
-        [InlineData("SELECT 1;\nSELECT 2;\nS\t\t\t\t\nexit\n", "SELECT 1;\r\n", "SELECT 2;\r\n", "SELECT 1;\r\n")]
+        [InlineData("SEL\t;\nexit\n", "SELECT;\r\n")]
+        [InlineData("sel\t;\nexit\n", "SELECT;\r\n")]
+        [InlineData("COU\t();\nexit\n", "COUNT();\r\n")]
+        public void Tab_WithKeywordPrefix_CompletesToKeyword(string input, params string[] expected)
+        {
+            var queryHandler = Substitute.For<IQueryHandler>();
+            var repl = CreateRepl(input);
+
+            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
+
+            VerifyReceived(queryHandler, expected);
+        }
+
+        [Theory]
+        [InlineData("INSERT INTO test;\nINS\t\t;\nexit\n", "INSERT INTO test;\r\n", "INSERT;\r\n")]
+        public void Tab_KeywordCompletion_CyclesCorrectly_DifferentKeyword(string input, params string[] expected)
+        {
+            var queryHandler = Substitute.For<IQueryHandler>();
+            var repl = CreateRepl(input);
+
+            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
+
+            VerifyReceived(queryHandler, expected);
+        }
+        
+        [Theory]
+        [InlineData("COU\t\t;\nexit\n", "COUNT;\r\n")]
+        public void Tab_OnlyKeywords_MultipleTabsToSameKeyword(string input, params string[] expected)
+        {
+            var queryHandler = Substitute.For<IQueryHandler>();
+            var repl = CreateRepl(input);
+
+            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
+
+            VerifyReceived(queryHandler, expected);
+        }
+
+        [Theory]
+        [InlineData("SELECT * FRO\t table;\nexit\n", "SELECT * FROM table;\r\n")]
+        public void Tab_KeywordInMiddleOfLine_InsertsAtCorrectPosition(string input, params string[] expected)
+        {
+            var queryHandler = Substitute.For<IQueryHandler>();
+            var repl = CreateRepl(input);
+
+            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
+
+            VerifyReceived(queryHandler, expected);
+        }
+
+        [Theory]
+        [InlineData("XYZ\t;\nexit\n", "XYZ;\r\n")]
+        public void Tab_NoMatchingKeywords_DoesNothing(string input, params string[] expected)
+        {
+            var queryHandler = Substitute.For<IQueryHandler>();
+            var repl = CreateRepl(input);
+
+            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
+
+            VerifyReceived(queryHandler, expected);
+        }
+        [Theory]
+        [InlineData("CO\t;\nexit\n", "COMMIT;\r\n")]
+        [InlineData("CO\t\t;\nexit\n", "COUNT;\r\n")]
         public void MultiTab_CyclesThroughCompletion(string input, params string[] expected)
         {
             var queryHandler = Substitute.For<IQueryHandler>();
