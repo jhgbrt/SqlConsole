@@ -223,7 +223,7 @@ internal class Repl : ICommand
                     { IsDownArrow: true } when y == 0 && _history.Any()
                         => (sb.Clear().Append(_history[0]), string.Empty, sb.Length, 1),
                     { IsTab: true }
-                        => FindCompletion(sb, prefix),
+                        => ProcessTabCompletion(sb, prefix, lastTokenStart, lastTokenEnd),
                     { IsHome: true }
                         => (sb, prefix, 0, ResetState()),
                     { IsEnd: true }
@@ -249,17 +249,7 @@ internal class Repl : ICommand
             return 0;
         }
 
-        (StringBuilder, string, int, int) InsertOrAppend(StringBuilder sb, bool insertMode, int x, char c)
-        {
-            if (x == sb.Length)
-                sb = sb.Append(c);
-            else if (insertMode)
-                sb = sb.Insert(x, c);
-            else
-                sb = sb.Replace(sb[x], c, x, 1);
-            return (sb, string.Empty, x + 1, ResetState());
-        }
-        (StringBuilder, string, int, int) FindCompletion(StringBuilder sb, string prefix)
+        (StringBuilder, string, int, int) ProcessTabCompletion(StringBuilder sb, string prefix, int currentTokenStart, int currentTokenEnd)
         {
             // If no active completion session, start a new one
             if (string.IsNullOrEmpty(prefix))
@@ -281,6 +271,12 @@ internal class Repl : ICommand
                 lastTokenEnd = end;
                 y = 0;
             }
+            else
+            {
+                // Use existing token positions
+                lastTokenStart = currentTokenStart;
+                lastTokenEnd = currentTokenEnd;
+            }
             
             // Search through keywords
             var matchingKeywords = SqlKeywords
@@ -296,10 +292,25 @@ internal class Repl : ICommand
                 sb.Remove(lastTokenStart, lastTokenEnd - lastTokenStart);
                 sb.Insert(lastTokenStart, selectedKeyword);
                 int newX = lastTokenStart + selectedKeyword.Length;
+                
+                // Update token end position to reflect the new keyword length
+                lastTokenEnd = lastTokenStart + selectedKeyword.Length;
+                
                 return (sb, prefix, newX, y + 1);
             }
             
             return (sb, prefix, x, y);
+        }
+
+        (StringBuilder, string, int, int) InsertOrAppend(StringBuilder sb, bool insertMode, int x, char c)
+        {
+            if (x == sb.Length)
+                sb = sb.Append(c);
+            else if (insertMode)
+                sb = sb.Insert(x, c);
+            else
+                sb = sb.Replace(sb[x], c, x, 1);
+            return (sb, string.Empty, x + 1, ResetState());
         }
 
     }
