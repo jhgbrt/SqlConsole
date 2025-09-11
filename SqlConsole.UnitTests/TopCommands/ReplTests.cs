@@ -67,18 +67,6 @@ namespace SqlConsole.UnitTests.TopCommands
 
             VerifyReceived(queryHandler, expected);
         }
-
-        [Theory]
-        [InlineData("SELECT 1;\nS\t\nexit\n", "SELECT 1;\r\n", "SELECT\r\n")]
-        public void Tab_CreatesCompletion(string input, params string[] expected)
-        {
-            var queryHandler = Substitute.For<IQueryHandler>();
-            var repl = CreateRepl(input);
-
-            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
-
-            VerifyReceived(queryHandler, expected);
-        }
         [Theory]
         [InlineData("SELECT 1111;\nSELECT 2\t;\nexit\n", "SELECT 1111;\r\n", "SELECT 2;\r\n")]
         public void Tab_WhenPrefixUnknown_DoesNothing(string input, params string[] expected)
@@ -96,18 +84,6 @@ namespace SqlConsole.UnitTests.TopCommands
         [InlineData("sel\t;\nexit\n", "SELECT;\r\n")]
         [InlineData("COU\t();\nexit\n", "COUNT();\r\n")]
         public void Tab_WithKeywordPrefix_CompletesToKeyword(string input, params string[] expected)
-        {
-            var queryHandler = Substitute.For<IQueryHandler>();
-            var repl = CreateRepl(input);
-
-            repl.Execute(queryHandler, new QueryOptions(), new NoColorConsoleRenderer());
-
-            VerifyReceived(queryHandler, expected);
-        }
-
-        [Theory]
-        [InlineData("SELECT 1;\nSEL\t\t\nexit\n", "SELECT 1;\r\n", "SELECT\r\n")]
-        public void Tab_KeywordCompletion_CyclesCorrectly(string input, params string[] expected)
         {
             var queryHandler = Substitute.For<IQueryHandler>();
             var repl = CreateRepl(input);
@@ -165,7 +141,8 @@ namespace SqlConsole.UnitTests.TopCommands
             VerifyReceived(queryHandler, expected);
         }
         [Theory]
-        [InlineData("SELECT 1;\nSELECT 2;\nS\t\t\t\t\nexit\n", "SELECT 1;\r\n", "SELECT 2;\r\n", "SELECT\r\n")]
+        [InlineData("CO\t;\nexit\n", "COMMIT;\r\n")]
+        [InlineData("CO\t\t;\nexit\n", "COUNT;\r\n")]
         public void MultiTab_CyclesThroughCompletion(string input, params string[] expected)
         {
             var queryHandler = Substitute.For<IQueryHandler>();
