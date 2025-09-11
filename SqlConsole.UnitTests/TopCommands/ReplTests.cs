@@ -69,7 +69,7 @@ namespace SqlConsole.UnitTests.TopCommands
         }
 
         [Theory]
-        [InlineData("SELECT 1;\nS\t\nexit\n", "SELECT 1;\r\n", "SELECT 1;\r\n")]
+        [InlineData("SELECT 1;\nS\t\nexit\n", "SELECT 1;\r\n", "SELECT\r\n")]
         public void Tab_CreatesCompletion(string input, params string[] expected)
         {
             var queryHandler = Substitute.For<IQueryHandler>();
@@ -107,7 +107,7 @@ namespace SqlConsole.UnitTests.TopCommands
 
         [Theory]
         [InlineData("SELECT 1;\nSEL\t\t\nexit\n", "SELECT 1;\r\n", "SELECT\r\n")]
-        public void Tab_HistoryFirstThenKeywords_CyclesCorrectly(string input, params string[] expected)
+        public void Tab_KeywordCompletion_CyclesCorrectly(string input, params string[] expected)
         {
             var queryHandler = Substitute.For<IQueryHandler>();
             var repl = CreateRepl(input);
@@ -119,7 +119,7 @@ namespace SqlConsole.UnitTests.TopCommands
 
         [Theory]
         [InlineData("INSERT INTO test;\nINS\t\t;\nexit\n", "INSERT INTO test;\r\n", "INSERT;\r\n")]
-        public void Tab_HistoryFirstThenKeywords_CyclesCorrectly_DifferentKeyword(string input, params string[] expected)
+        public void Tab_KeywordCompletion_CyclesCorrectly_DifferentKeyword(string input, params string[] expected)
         {
             var queryHandler = Substitute.For<IQueryHandler>();
             var repl = CreateRepl(input);
@@ -142,7 +142,7 @@ namespace SqlConsole.UnitTests.TopCommands
         }
 
         [Theory]
-        [InlineData("SELECT * FR\tOM table;\nexit\n", "SELECT * FROM table;\r\n")]
+        [InlineData("SELECT * FRO\t table;\nexit\n", "SELECT * FROM table;\r\n")]
         public void Tab_KeywordInMiddleOfLine_InsertsAtCorrectPosition(string input, params string[] expected)
         {
             var queryHandler = Substitute.For<IQueryHandler>();
@@ -165,7 +165,7 @@ namespace SqlConsole.UnitTests.TopCommands
             VerifyReceived(queryHandler, expected);
         }
         [Theory]
-        [InlineData("SELECT 1;\nSELECT 2;\nS\t\t\t\t\nexit\n", "SELECT 1;\r\n", "SELECT 2;\r\n", "SELECT 1;\r\n")]
+        [InlineData("SELECT 1;\nSELECT 2;\nS\t\t\t\t\nexit\n", "SELECT 1;\r\n", "SELECT 2;\r\n", "SELECT\r\n")]
         public void MultiTab_CyclesThroughCompletion(string input, params string[] expected)
         {
             var queryHandler = Substitute.For<IQueryHandler>();

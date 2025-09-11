@@ -282,53 +282,21 @@ internal class Repl : ICommand
                 y = 0;
             }
             
-            // First, search through history using prefix (whole-line replacement)
-            for (int i = y; i < _history.Count; i++)
-                if (_history[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                    return (sb.Clear().Append(_history[i]), prefix, sb.Length, i + 1);
-            for (int i = 0; i < y && i < _history.Count; i++)
-                if (_history[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                    return (sb.Clear().Append(_history[i]), prefix, sb.Length, i + 1);
-                    
-            // After exhausting history, search through keywords
+            // Search through keywords
             var matchingKeywords = SqlKeywords
                 .Where(keyword => keyword.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 .ToArray();
                 
             if (matchingKeywords.Length > 0)
             {
-                int keywordIndex = y - _history.Count;
-                if (keywordIndex >= 0 && keywordIndex < matchingKeywords.Length)
-                {
-                    var selectedKeyword = matchingKeywords[keywordIndex];
-                    
-                    // Determine replacement strategy:
-                    // If we came from history (y > 0), do whole-line replacement
-                    // If token has surrounding context, do token-based replacement
-                    // Otherwise, do whole-line replacement
-                    bool hasContext = lastTokenStart > 0 || lastTokenEnd < sb.Length;
-                    bool cameFromHistory = y > 0;
-                    
-                    if (cameFromHistory || !hasContext)
-                    {
-                        // Whole-line replacement
-                        return (sb.Clear().Append(selectedKeyword), prefix, selectedKeyword.Length, _history.Count + keywordIndex + 1);
-                    }
-                    else
-                    {
-                        // Token-based replacement (preserve surrounding text)
-                        sb.Remove(lastTokenStart, lastTokenEnd - lastTokenStart);
-                        sb.Insert(lastTokenStart, selectedKeyword);
-                        int newX = lastTokenStart + selectedKeyword.Length;
-                        return (sb, prefix, newX, _history.Count + keywordIndex + 1);
-                    }
-                }
-                // Wrap around to first keyword when cycling beyond end
-                else if (keywordIndex >= matchingKeywords.Length)
-                {
-                    var selectedKeyword = matchingKeywords[0];
-                    return (sb.Clear().Append(selectedKeyword), prefix, selectedKeyword.Length, _history.Count + 1);
-                }
+                int keywordIndex = y % matchingKeywords.Length;
+                var selectedKeyword = matchingKeywords[keywordIndex];
+                
+                // Token-based replacement (preserve surrounding text)
+                sb.Remove(lastTokenStart, lastTokenEnd - lastTokenStart);
+                sb.Insert(lastTokenStart, selectedKeyword);
+                int newX = lastTokenStart + selectedKeyword.Length;
+                return (sb, prefix, newX, y + 1);
             }
             
             return (sb, prefix, x, y);
