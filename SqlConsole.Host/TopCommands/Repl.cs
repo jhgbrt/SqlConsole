@@ -1,4 +1,7 @@
 ﻿
+using SqlConsole.Host.Infrastructure;
+using SqlConsole.Host.QueryHandler;
+using System.Data.Common;
 using static SqlConsole.Host.CommandFactory;
 using static System.ConsoleKey;
 
@@ -8,6 +11,7 @@ internal class Repl : ICommand
 {
 
     private readonly IReplConsole _console;
+    private readonly ISchemaMetadataService? _schemaService;
 
     // SQL Keywords and Functions for Tab completion
     private static readonly string[] SqlKeywords = new[]
@@ -30,14 +34,35 @@ internal class Repl : ICommand
         "CAST", "CONVERT", "GETDATE", "NOW", "DATEADD", "DATEDIFF", "YEAR", "MONTH", "DAY"
     };
 
-    public Repl() : this(new ReplConsole()) { }
-    public Repl(IReplConsole console) => _console = console;
+    public Repl() : this(new ReplConsole(), null) { }
+    public Repl(IReplConsole console) : this(console, null) { }
+    public Repl(IReplConsole console, ISchemaMetadataService? schemaService) 
+    { 
+        _console = console;
+        _schemaService = schemaService;
+    }
 
     public void Execute(IQueryHandler queryHandler, QueryOptions options, IConsoleRenderer renderer)
     {
         queryHandler.Connect();
 
         renderer.WriteConnectionStatus(queryHandler.ConnectionStatus);
+
+        // Start schema loading asynchronously if we have schema service and a semantic query handler
+        if (_schemaService != null && queryHandler is SemanticQueryHandler semanticHandler)
+        {
+            _ = Task.Run(async () => 
+            {
+                try 
+                { 
+                    await _schemaService.LoadSchemaAsync(semanticHandler.GetDb()); 
+                }
+                catch 
+                { 
+                    // Silently ignore schema loading errors
+                }
+            });
+        }
 
         foreach (var command in ReadCommands())
         {
@@ -49,6 +74,21 @@ internal class Repl : ICommand
                 case Connect:
                     queryHandler.Connect();
                     renderer.WriteConnectionStatus(queryHandler.ConnectionStatus);
+                    // Restart schema loading after reconnect
+                    if (_schemaService != null && queryHandler is SemanticQueryHandler semanticHandler2)
+                    {
+                        _ = Task.Run(async () => 
+                        {
+                            try 
+                            { 
+                                await _schemaService.RefreshSchemaAsync(semanticHandler2.GetDb()); 
+                            }
+                            catch 
+                            { 
+                                // Silently ignore schema loading errors
+                            }
+                        });
+                    }
                     break;
                 case Disconnect:
                     queryHandler.Disconnect();
@@ -56,6 +96,28 @@ internal class Repl : ICommand
                     break;
                 case Clear:
                     _console.Clear();
+                    break;
+                case RefreshSchema:
+                    if (_schemaService != null && queryHandler is SemanticQueryHandler semanticHandler3)
+                    {
+                        _console.WriteLine("Refreshing schema metadata...");
+                        _ = Task.Run(async () => 
+                        {
+                            try 
+                            { 
+                                await _schemaService.RefreshSchemaAsync(semanticHandler3.GetDb()); 
+                                _console.WriteLine("Schema metadata refreshed.");
+                            }
+                            catch 
+                            { 
+                                _console.WriteLine("Failed to refresh schema metadata.");
+                            }
+                        });
+                    }
+                    else
+                    {
+                        _console.WriteLine("Schema metadata service not available.");
+                    }
                     break;
                 case SqlQuery q:
                     try
@@ -83,11 +145,13 @@ internal class Repl : ICommand
                         "A GO statement, a forward slash ('/') on a single line or an empty line will also run the query.");
                     _console.WriteLine();
                     _console.WriteLine("commands:");
-                    _console.WriteLine("    help            Show this help message");
-                    _console.WriteLine("    exit, quit      Exit the console");
-                    _console.WriteLine("    connect         Connect to the underlying database");
-                    _console.WriteLine("    disconnect      Disconnect from the database");
-                    _console.WriteLine("    cls             Clear the screen");
+                    _console.WriteLine("    help                Show this help message");
+                    _console.WriteLine("    exit, quit          Exit the console");
+                    _console.WriteLine("    connect             Connect to the underlying database");
+                    _console.WriteLine("    disconnect          Disconnect from the database");
+                    _console.WriteLine("    cls                 Clear the screen");
+                    _console.WriteLine("    :refresh-schema     Refresh database schema metadata for completion");
+                    _console.WriteLine("    \\rs                 Refresh database schema metadata for completion");
                     _console.WriteLine("");
                     break;
                 case Continue:
@@ -104,6 +168,7 @@ internal class Repl : ICommand
     record Help() : BaseCommand(false) { }
     record Continue() : BaseCommand(false) { }
     record Clear() : BaseCommand(false) { }
+    record RefreshSchema() : BaseCommand(false) { }
 
     static readonly Dictionary<string, BaseCommand> commands = new()
     {
@@ -114,6 +179,8 @@ internal class Repl : ICommand
         ["help"] = new Help(),
         ["cls"] = new Clear(),
         ["clear"] = new Clear(),
+        [":refresh-schema"] = new RefreshSchema(),
+        ["\\rs"] = new RefreshSchema(),
     };
     IEnumerable<BaseCommand> ReadCommands()
     {
@@ -278,23 +345,21 @@ internal class Repl : ICommand
                 lastTokenEnd = currentTokenEnd;
             }
             
-            // Search through keywords
-            var matchingKeywords = SqlKeywords
-                .Where(keyword => keyword.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                .ToArray();
+            // Get all possible completions based on context
+            var allCompletions = GetCompletions(sb.ToString(), lastTokenStart, prefix);
                 
-            if (matchingKeywords.Length > 0)
+            if (allCompletions.Count > 0)
             {
-                int keywordIndex = y % matchingKeywords.Length;
-                var selectedKeyword = matchingKeywords[keywordIndex];
+                int completionIndex = y % allCompletions.Count;
+                var selectedCompletion = allCompletions[completionIndex];
                 
                 // Token-based replacement (preserve surrounding text)
                 sb.Remove(lastTokenStart, lastTokenEnd - lastTokenStart);
-                sb.Insert(lastTokenStart, selectedKeyword);
-                int newX = lastTokenStart + selectedKeyword.Length;
+                sb.Insert(lastTokenStart, selectedCompletion);
+                int newX = lastTokenStart + selectedCompletion.Length;
                 
-                // Update token end position to reflect the new keyword length
-                lastTokenEnd = lastTokenStart + selectedKeyword.Length;
+                // Update token end position to reflect the new completion length
+                lastTokenEnd = lastTokenStart + selectedCompletion.Length;
                 
                 return (sb, prefix, newX, y + 1);
             }
@@ -313,6 +378,58 @@ internal class Repl : ICommand
             return (sb, string.Empty, x + 1, ResetState());
         }
 
+    }
+
+    private List<string> GetCompletions(string sqlText, int cursorPosition, string prefix)
+    {
+        var completions = new List<string>();
+        
+        // Always include SQL keywords first (preserve original order for backward compatibility)
+        var matchingKeywords = SqlKeywords
+            .Where(keyword => keyword.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        completions.AddRange(matchingKeywords);
+        
+        // Add schema-aware completions if available
+        if (_schemaService?.IsLoaded == true)
+        {
+            var context = SqlContextParser.DetermineContext(sqlText, cursorPosition);
+            
+            switch (context)
+            {
+                case SqlCompletionContext.Tables:
+                    var matchingTables = _schemaService.GetTableNames()
+                        .Where(table => table.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                        .Where(table => !matchingKeywords.Contains(table, StringComparer.OrdinalIgnoreCase))
+                        .ToList();
+                    completions.AddRange(matchingTables);
+                    break;
+                    
+                case SqlCompletionContext.Columns:
+                    var matchingColumns = _schemaService.GetAllColumnNames()
+                        .Where(column => column.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                        .Where(column => !matchingKeywords.Contains(column, StringComparer.OrdinalIgnoreCase))
+                        .ToList();
+                    completions.AddRange(matchingColumns);
+                    break;
+                    
+                case SqlCompletionContext.General:
+                    // In general context, include both tables and columns but after keywords
+                    var matchingTablesGeneral = _schemaService.GetTableNames()
+                        .Where(table => table.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                        .Where(table => !matchingKeywords.Contains(table, StringComparer.OrdinalIgnoreCase))
+                        .ToList();
+                    var matchingColumnsGeneral = _schemaService.GetAllColumnNames()
+                        .Where(column => column.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                        .Where(column => !matchingKeywords.Contains(column, StringComparer.OrdinalIgnoreCase))
+                        .ToList();
+                    completions.AddRange(matchingTablesGeneral);
+                    completions.AddRange(matchingColumnsGeneral);
+                    break;
+            }
+        }
+        
+        return completions;
     }
     struct MyConsoleKey
     {

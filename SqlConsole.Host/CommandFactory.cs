@@ -1,4 +1,5 @@
 ﻿using Net.Code.ADONet;
+using SqlConsole.Host.Infrastructure;
 using SqlConsole.Host.QueryHandler;
 using SqlConsole.Host.Rendering;
 using SqlConsole.Host.ResultModel;
@@ -58,7 +59,18 @@ static partial class CommandFactory
             {
                 var renderer = ConsoleRendererFactory.Create(options);
                 using var queryHandler = CreateQueryHandler(provider, builder, options, console, isRepl);
-                commandHandler.Execute(queryHandler, options, renderer);
+                
+                // Create command handler with schema service for REPL
+                if (commandHandler is Repl && isRepl)
+                {
+                    var schemaService = new SchemaMetadataService(provider);
+                    var replWithSchema = new Repl(new ReplConsole(), schemaService);
+                    replWithSchema.Execute(queryHandler, options, renderer);
+                }
+                else
+                {
+                    commandHandler.Execute(queryHandler, options, renderer);
+                }
             })
         }.WithOptions(options);
     }

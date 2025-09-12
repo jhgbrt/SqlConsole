@@ -79,4 +79,9 @@ internal class SemanticQueryHandler : IQueryHandler
         _db.Dispose();
         _disposableWriter?.Dispose();
     }
+
+    /// <summary>
+    /// Gets the underlying database connection for schema operations
+    /// </summary>
+    internal IDb GetDb() => _db;
 }
